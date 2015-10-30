@@ -48,7 +48,7 @@ describe('Style', () => {
   });
 
   it('setStyle with vendor prefix', () => {
-    let element = { style: { WebkitTransitionDuration: '' } };
+    let element = {style: {WebkitTransitionDuration: ''}};
     st.setStyle(element, 'transitionDuration', '1s', undefined, true);
     expect(element.style.WebkitTransitionDuration).to.equal('1s');
   });
@@ -88,47 +88,47 @@ describe('Style', () => {
   describe('getVendorJsPropertyName', () => {
 
     it('no prefix', () => {
-      let element = { style: { transitionDuration: '' } };
+      let element = {style: {transitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration', true);
       expect(prop).to.equal('transitionDuration');
     });
 
     it('should use cached previous result', () => {
-      let element = { style: { transitionDuration: '' } };
+      let element = {style: {transitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration');
       expect(prop).to.equal('transitionDuration');
 
-      element = { style: { WebkitTransitionDuration: '' } };
+      element = {style: {WebkitTransitionDuration: ''}};
       prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration');
       expect(prop).to.equal('transitionDuration');
     });
 
     it('Webkit', () => {
-      let element = { style: { WebkitTransitionDuration: '' } };
+      let element = {style: {WebkitTransitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration', true);
       expect(prop).to.equal('WebkitTransitionDuration');
     });
 
     it('Moz', () => {
-      let element = { style: { MozTransitionDuration: '' } };
+      let element = {style: {MozTransitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration', true);
       expect(prop).to.equal('MozTransitionDuration');
     });
 
     it('ms', () => {
-      let element = { style: { msTransitionDuration: '' } };
+      let element = {style: {msTransitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration', true);
       expect(prop).to.equal('msTransitionDuration');
     });
 
     it('O opera', () => {
-      let element = { style: { OTransitionDuration: '' } };
+      let element = {style: {OTransitionDuration: ''}};
       let prop = st
           .getVendorJsPropertyName(element.style, 'transitionDuration', true);
       expect(prop).to.equal('OTransitionDuration');
