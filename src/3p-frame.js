@@ -15,9 +15,9 @@
  */
 
 
+import {Ad3pContext} from './ad-context';
 import {getLengthNumeral} from '../src/layout';
 import {getService} from './service';
-import {documentInfoFor} from './document-info';
 import {getMode} from './mode';
 import {getIntersectionChangeEntry} from './intersection-observer';
 import {preconnectFor} from './preconnect';
@@ -25,8 +25,6 @@ import {dashToCamelCase} from './string';
 import {parseUrl, assertHttpsUrl} from './url';
 import {timer} from './timer';
 import {user} from './log';
-import {viewportFor} from './viewport';
-import {viewerFor} from './viewer';
 
 
 /** @type {!Object<string,number>} Number of 3p frames on the for that type. */
@@ -56,8 +54,6 @@ function getFrameAttributes(parentWindow, element, opt_type) {
   attributes.width = getLengthNumeral(width);
   attributes.height = getLengthNumeral(height);
   attributes.type = type;
-  const docInfo = documentInfoFor(parentWindow);
-  const viewer = viewerFor(parentWindow);
   let locationHref = parentWindow.location.href;
   // This is really only needed for tests, but whatever. Children
   // see us as the logical origin, so telling them we are about:srcdoc
@@ -65,7 +61,9 @@ function getFrameAttributes(parentWindow, element, opt_type) {
   if (locationHref == 'about:srcdoc') {
     locationHref = parentWindow.parent.location.href;
   }
-  attributes._context = {
+  attributes._context = new 3pContext(parentWindow, element, startTime);
+
+  {
     referrer: viewer.getUnconfirmedReferrerUrl(),
     canonicalUrl: docInfo.canonicalUrl,
     pageViewId: docInfo.pageViewId,
