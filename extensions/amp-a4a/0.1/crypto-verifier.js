@@ -195,10 +195,11 @@ function hashesEqual(signature, keyHash) {
 }
 
 const btoaSubChars = /[+\/=]/g;
-const btoaSubs = {'+': '-', '/': '_', '=': '.'};
+// Translate +, / characters; lose padding.
+const btoaSubs = {'+': '-', '/': '_', '=': ''};
 
 /**
- * Make a base64url encoded version of some bytes.
+ * Make a base64url (without padding) encoded version of some bytes.
  * @param {Uint8Array} array
  * @return {string}
  */
