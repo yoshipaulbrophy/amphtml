@@ -84,16 +84,19 @@ function selectRandomProperty(obj) {
  * @visibleForTesting
  */
 export function setupPageExperiments(win, experiments) {
-  // TODO(tdrl): Check whether the URL contains exp state info from GWS/Mendel.
-  // If so, set up experiment state from that and then return.  Otherwise,
-  // fall through to the following client-side experiment diversion.
   win.pageExperimentBranches = win.pageExperimentBranches || {};
   if (getMode().localDev) {
     // In local dev mode, it can be difficult to configure AMP_CONFIG
     // externally.  Default it here if necessary.
     win.AMP_CONFIG = win.AMP_CONFIG || {};
   }
-  Object.keys(experiments).forEach(experimentId => {
+  for (experimentId in experiments) {
+    // Skip experimentId if it is not a key of experiments object or if it
+    // has already been populated by some other property.
+    if (!experiments.hasOwnProperty(experimentId) ||
+        win.pageExperimentBranches.hasOwnProperty(experimentId)) {
+      continue;
+    }
     if (getMode().localDev) {
       win.AMP_CONFIG[experimentId] = win.AMP_CONFIG[experimentId] || 0.0;
     }
@@ -106,7 +109,7 @@ export function setupPageExperiments(win, experiments) {
       const branch = selectRandomProperty(branches);
       win.pageExperimentBranches[experimentId] = branches[branch];
     }
-  });
+  }
 }
 
 /**
@@ -132,7 +135,8 @@ export function getPageExperimentBranch(win, experimentId) {
  * @visibleForTesting
  */
 export function forceExperimentBranch(win, experimentId, branchId) {
-  toggleExperiment(win, experimentId, !!branchId);
+  win.pageExperimentBranches = win.pageExperimentBranches || {};
+  toggleExperiment(win, experimentId, !!branchId, true);
   win.pageExperimentBranches[experimentId] = branchId;
 }
 
