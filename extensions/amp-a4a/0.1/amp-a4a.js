@@ -23,6 +23,7 @@ import {adPreconnect} from '../../../ads/_config';
 import {removeElement} from '../../../src/dom';
 import {cancellation} from '../../../src/error';
 import {insertAmpExtensionScript} from '../../../src/insert-extension.js';
+import {IntersectionObserver} from '../../../src/intersection-observer';
 import {isLayoutSizeDefined} from '../../../src/layout';
 import {user} from '../../../src/log';
 import {
@@ -117,6 +118,9 @@ export class AmpA4A extends AMP.BaseElement {
      *    based creative injection.
      */
     this.stylesheets_ = [];
+
+    /** @param {IntersectionObserver} */
+    this.intersectionObserver_ = null;
   }
 
   /** @override */
@@ -183,6 +187,9 @@ export class AmpA4A extends AMP.BaseElement {
 
   /** @override */
   onLayoutMeasure() {
+    if (this.intersectionObserver_) {
+      this.intersectionObserver_.fire();
+    }
     if (this.layoutMeasureExecuted_ || !verifySignatureIsAvailable()) {
       // onLayoutMeasure gets called multiple times.
       return;
@@ -292,7 +299,7 @@ export class AmpA4A extends AMP.BaseElement {
       if (!rendered) {
         // Was not AMP creative so wrap in cross domain iframe.  layoutCallback
         // has already executed so can do so immediately.
-        this.renderViaIframe_();
+        this.renderViaIframe_(true);
       }
       this.rendered_ = true;
     }).catch(error => this.promiseErrorHandler_(error));
@@ -323,6 +330,7 @@ export class AmpA4A extends AMP.BaseElement {
     this.rendered_ = false;
     this.timerId_ = 0;
     this.layoutMeasureExecuted_ = false;
+    this.intersectionObserver_ = null;
     return true;
   }
 
@@ -474,9 +482,12 @@ export class AmpA4A extends AMP.BaseElement {
    * have been cached causing the browser to render without callout.  However,
    * it is possible for cache miss to occur which can be detected server-side
    * by missing ORIGIN header.
+   * @param {boolean=} opt_isNonAmpCreative whether creative within iframe
+   *    is AMP creative (if not, intersection observer allows sending info into
+   *    nested frames).
    * @private
    */
-  renderViaIframe_() {
+  renderViaIframe_(opt_isNonAmpCreative) {
     if (!this.adUrl_) {
       // Error should not occur.
       return;
@@ -489,6 +500,8 @@ export class AmpA4A extends AMP.BaseElement {
     // TODO: remove call to getCorsUrl and instead have fetch API return
     // modified url.
     iframe.setAttribute('src', getCorsUrl(this.getWin(), this.adUrl_));
+    this.intersectionObserver_ =
+        new IntersectionObserver(this, iframe, true);
     this.element.appendChild(iframe);
   }
 
