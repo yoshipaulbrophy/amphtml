@@ -72,12 +72,14 @@ exports.rules = [
     filesMatching: 'ads/**/*.js',
     mustNotDependOn: 'src/**/*.js',
     whitelist: [
+      'ads/**->src/document-state.js',
+      'ads/**->src/experiments.js',
       'ads/**->src/log.js',
+      'ads/**->src/mode.js',
+      'ads/**->src/timer.js',
       'ads/**->src/types.js',
       'ads/**->src/string.js',
       'ads/**->src/url.js',
-      'ads/google/utils.js->src/document-state.js',
-      'ads/google/utils.js->src/timer.js',
       'ads/google/traffic-experiments.js->src/mode.js',
       'ads/google/traffic-experiments.js->src/experiments.js',
     ],
@@ -85,6 +87,9 @@ exports.rules = [
   {
     filesMatching: 'ads/**/*.js',
     mustNotDependOn: 'extensions/**/*.js',
+    whitelist: [
+      'ads/_config.js->extensions/amp-ad-network-adsense-impl/0.1/adsense-a4a-config.js',
+    ],
   },
   // Rules for extensions.
   {

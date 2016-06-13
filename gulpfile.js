@@ -53,6 +53,7 @@ function buildExtensions(options) {
   buildExtension('amp-access', '0.1', true, options);
   buildExtension('amp-accordion', '0.1', true, options);
   buildExtension('amp-ad', '0.1', false, options);
+  buildExtension('amp-ad-network-adsense-impl', 0.1, false, options);
   buildExtension('amp-analytics', '0.1', false, options);
   buildExtension('amp-anim', '0.1', false, options);
   buildExtension('amp-audio', '0.1', false, options);
@@ -763,4 +764,3 @@ gulp.task('extensions', 'Build AMP Extensions', buildExtensions);
 gulp.task('watch', 'Watches for changes in files, re-build', watch);
 gulp.task('build-experiments', 'Builds experiments.html/js', buildExperiments);
 gulp.task('build-login-done', 'Builds login-done.html/js', buildLoginDone);
-

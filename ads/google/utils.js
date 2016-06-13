@@ -149,8 +149,8 @@ const TRUNC_PARAM_ = '&trunc=1';
  * @param {!IntersectionObserverEntry} intersectionRecord
  * @return {string}
  */
-function adsenseRequestURL(startTime, slotNumber, global, data, isAmp,
-                           canonicalUrl, correlator, intersectionRecord) {
+export function adsenseRequestURL(startTime, slotNumber, global, data, isAmp,
+    canonicalUrl, correlator, intersectionRecord) {
   // const lmt = global.document.lastModified;
   const slot = intersectionRecord.boundingClientRect;
   // For this intersectionRecord, root is the viewport.
@@ -224,7 +224,9 @@ function adsenseRequestURL(startTime, slotNumber, global, data, isAmp,
     // Unique ID within window.
     `&ifi=${slotNumber}` +
     // Experiment IDs, if any.
-    (experimentIds ? `&eid=${experimentIds}` : '');
+    (experimentIds ? `&eid=${experimentIds}` : '') +
+    // Forced creative types, if any.
+    (data['ctypes'] ? `&ctypes=${data['ctypes']}` : '');
 
   let truncated = false;
   const addParameter = (name, value) => {

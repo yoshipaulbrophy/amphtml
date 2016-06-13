@@ -16,6 +16,10 @@
 
 import {getAdsenseInfo, adsenseRequestURLForAmpAd} from './utils';
 import {checkData} from '../../3p/3p';
+import {
+  parseExperimentIds,
+  validateExperimentIds,
+} from './traffic-experiments';
 
 /**
  * Make an adsense iframe.
@@ -28,7 +32,9 @@ export function adsense(global, data) {
     adsenseDirectRequest(global, data);
     return;
   }
-  checkData(data, ['adClient', 'adSlot', 'adHost', 'adtest', 'tagOrigin']);
+
+  checkData(data, ['adClient', 'adSlot', 'adHost', 'adtest', 'tagOrigin',
+                   'experimentId']);
   if (global.context.clientId) {
     // Read by GPT for GA/GPT integration.
     global.gaGlobal = {
@@ -57,8 +63,26 @@ export function adsense(global, data) {
   i.setAttribute('data-page-url', global.context.canonicalUrl);
   i.setAttribute('class', 'adsbygoogle');
   i.style.cssText = 'display:inline-block;width:100%;height:100%;';
+  const initializer = {};
+  if (data['experimentId']) {
+    // We need to forward the experiment ID to the adsense code in such a way
+    // that it will attach the ID to the generated URL.  Ideally, we could
+    // attach a data-* attribute to the ins tag.  However, we need the value
+    // to be an array, rather than a scalar string.  It looks like the
+    // publisher var parsing code is probably sophisticated enough to handle
+    // arrays, but the syntax isn't clear.  Simplest is just to force EIDs in
+    // by attaching them to the .params field of the initializer object.
+    const experimentIdList = parseExperimentIds(data['experimentId']);
+    if (experimentIdList && validateExperimentIds(experimentIdList)) {
+      initializer['params'] = {
+        'google_ad_modifications': {
+          'eids': experimentIdList,
+        },
+      };
+    }
+  }
   global.document.getElementById('c').appendChild(i);
-  (global.adsbygoogle = global.adsbygoogle || []).push({});
+  (global.adsbygoogle = global.adsbygoogle || []).push(initializer);
 }
 
 
