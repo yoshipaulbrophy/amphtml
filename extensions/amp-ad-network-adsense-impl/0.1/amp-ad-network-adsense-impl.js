@@ -115,15 +115,7 @@ export class AmpAdNetworkAdSenseImpl extends AmpA4A {
 
    /** @override */
    extractCreativeAndSignature(responseText, responseHeaders) {
-     const adResponse = {
-       creativeArrayBuffer: responseText,
-       signature: null,
-     };
-     try {
-       adResponse['signature'] = responseHeaders.get(AMP_SIGNATURE_HEADER);
-     } finally {
-       return Promise.resolve(adResponse);
-     }
+     return extractA4ACreativeAndSignature(responseText, responseHeaders);
    }
  }
 

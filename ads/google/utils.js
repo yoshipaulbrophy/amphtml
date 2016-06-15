@@ -22,6 +22,25 @@ import {
   parseExperimentIds,
 } from './traffic-experiments';
 
+/**
+ * Extracts creative and verification signature (if present) from
+ * XHR response body and header for Google based ad networks.
+ * @param {!ArrayBuffer} unusedResponseArrayBuffer content as array buffer
+ * @param {!Headers} unusedResponseHeaders Fetch API Headers object (or polyfill
+ *     for it) containing the response headers.
+ * @return {!Promise<{!AdResponseDef}>}
+ */
+export function extractA4ACreativeAndSignature(responseText, responseHeaders) {
+  const adResponse = {
+    creativeArrayBuffer: responseText,
+    signature: null,
+  };
+  try {
+    adResponse['signature'] = responseHeaders.get(AMP_SIGNATURE_HEADER);
+  } finally {
+    return Promise.resolve(adResponse);
+  }
+}
 
 /**
  * @param {!Window} global
