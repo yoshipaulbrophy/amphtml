@@ -20,6 +20,7 @@ import {
   getAdsenseInfo,
   adsenseRequestURL,
   getAmpCorrelator,
+  extractA4ACreativeAndSignature
 } from '../../../ads/google/utils';
 import {documentInfoFor} from '../../../src/document-info';
 import {timer} from '../../../src/timer';
