@@ -521,9 +521,9 @@ export class AmpA4A extends AMP.BaseElement {
       // indicates that the tests are too weak or aren't reporting
       // correctly.  Check out and fix the tests.
       return verifySignature(
-          new Uint8Array(creative), signature, publicKeyInfos).then(isValid => {
-            return isValid ? creative : null;
-          });
+          new Uint8Array(creative), signature, publicKeyInfos)
+              .then(isValid => isValid ? creative : null);
+      // TODO(taymonbeal): error reporting
     }
     return Promise.reject('Public key validation of A4A ads not available');
   }
@@ -604,10 +604,10 @@ export class AmpA4A extends AMP.BaseElement {
             this.onAmpCreativeShadowDomRender();
           });
           return Promise.resolve(true);
-        } catch (e) {
+        } catch (err) {
           // If we fail on any of the steps of Shadow DOM construction, just
           // render in iframe.
-          // TODO: report!
+          dev.error('A4A', err, this.element);
           return Promise.resolve(false);
         }
       }
@@ -652,7 +652,6 @@ export class AmpA4A extends AMP.BaseElement {
    *     the metadata markers on the ad text, or null if no metadata markers are
    *     found.
    * @private
-   * TODO(keithwrightbos@): report error cases
    */
   getAmpAdMetadata_(creative) {
     const metadataStart = creative.lastIndexOf(METADATA_STRING);

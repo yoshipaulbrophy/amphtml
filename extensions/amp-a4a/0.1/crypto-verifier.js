@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-import {dev} from '../../../src/log';
-
-const TAG_ = 'CryptoVerifier';
-
 const isWebkit = window.crypto && 'webkitSubtle' in window.crypto;
 const crossCrypto = isWebkit ? window.crypto.webkitSubtle :
                                window.crypto.subtle;
@@ -75,6 +71,38 @@ export function importPublicKey(publicKey) {
 }
 
 /**
+ * Returns a promise that resolves or rejects when all of the promises in the
+ * array argument have resolved or rejected.  This is like the ES6 builtin
+ * `Promise.all`, with one critical difference: as soon as one promise passed to
+ * `Promise.all` rejects, the rest get dropped on the floor.  By contrast, this
+ * function waits for all promises to be settled no matter what, and if any
+ * were rejected then all the errors are made available for reporting.
+ * @template T
+ * @param {!Array<!Promise<T>>} promises
+ * @return {!Promise<!Array<T>>} a promise that, if all passed promises resolve,
+ *     resolves with an array of their values; if any of them rejects, this
+ *     promise rejects with an `Error` whose `errors` property is an array of
+ *     the values of those promises that rejected
+ */
+function waitAll(promises) {
+  return Promise.all(promises.map(promise => promise.then(
+      value => ({value, rejected: false}),
+      value => ({value, rejected: true}))))
+          .then(results => {
+            const failures = results.filter(result => result.rejected);
+            if (failures.length) {
+              const aggregate = new Error(
+                  'Aggregate error from multiple promises ' +
+                      '(see errors property)');
+              aggregate.errors = failures.map(result => result.value);
+              throw aggregate;
+            } else {
+              return results.map(result => result.value);
+            }
+          });
+}
+
+/**
  * Verifies RSA signature corresponds to the data given a list of public keys.
  * @param {!Uint8Array} data the data that was signed.
  * @param {!Uint8Array} signature the RSA signature.
@@ -85,15 +113,10 @@ export function importPublicKey(publicKey) {
  */
 export function verifySignature(data, signature, publicKeyInfos) {
   // Try all the public keys.
-  return Promise.all(publicKeyInfos.map(promise => promise.then(
-    publicKeyInfo => verifyWithOnePublicKey(data, signature, publicKeyInfo))))
-    // If any public key verifies, then the signature verifies.
-    .then(results => results.some(x => x))
-    .catch(error => {
-      // Note if anything goes wrong.
-      dev.error(TAG_, 'Error while verifying:', error);
-      throw error;
-    });
+  return waitAll(publicKeyInfos.map(promise => promise.then(publicKeyInfo =>
+      verifyWithOnePublicKey(data, signature, publicKeyInfo))))
+  // If any public key verifies, then the signature verifies.
+      .then(results => results.some(x => x));
 }
 
 

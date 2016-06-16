@@ -22,6 +22,7 @@ import {base64UrlDecode} from '../crypto-verifier';
 import {Xhr} from '../../../../src/service/xhr-impl';
 import {Viewer} from '../../../../src/service/viewer-impl';
 import {cancellation} from '../../../../src/error';
+import {dev} from '../../../../src/log';
 import {createIframePromise} from '../../../../testing/iframe';
 import {installDocService} from '../../../../src/service/ampdoc-impl';
 import {data as minimumAmp} from './testdata/minimum_valid_amp.reserialized';
@@ -420,6 +421,27 @@ describe('amp-a4a', () => {
           const adBody = root.querySelector('amp-ad-body');
           expect(adBody).to.be.ok;
           expect(adBody.innerHTML).to.equal('<p>some text</p>');
+        });
+      });
+    });
+    it('should log an error and not render AMP natively', () => {
+      return createAdTestingIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new AmpA4A(a4aElement);
+        a4a.adUrl_ = 'https://nowhere.org';
+        const bytes = buildCreativeArrayBuffer();
+        const err = new Error();
+        sandbox.stub(a4a, 'formatCSSBlock_').throws(err);
+        const devErrorSpy = sandbox.spy(dev, 'error');
+        a4a.maybeRenderAmpAd_(true, bytes).then(rendered => {
+          expect(rendered).to.be.false;
+          expect(a4aElement.shadowRoot).to.be.null;
+          expect(a4a.rendered_).to.be.false;
+          expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+              .to.be.true;
+          expect(devErrorSpy.calledWithExactly('A4A', err, a4aElement),
+                 'dev.error called with correct arguments').to.be.true;
         });
       });
     });
