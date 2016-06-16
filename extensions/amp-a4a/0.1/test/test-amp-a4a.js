@@ -50,29 +50,36 @@ class MockA4AImpl extends AmpA4A {
 describe('amp-a4a', () => {
   let sandbox;
   let xhrMock;
-  const mockResponse = {
-    // TODO: Use a signed body text here.
-    arrayBuffer: function() {
-      return Promise.resolve(stringToArrayBuffer(validCSSAmpData));
-    },
-    bodyUsed: false,
-    headers: {
-      get: function (name) {
-        const headerValues = {
-          // TODO: Use a real signature, corresponding to the real body
-          // text, above, so we can check that validation behaves
-          // correctly.
-          'X-Google-header': '012345',
-        };
-        return headerValues[name];
+  let viewerForMock;
+  let devErrorSpy;
+
+  function createMockResponse(bodyText, signature) {
+    return {
+      arrayBuffer: function() {
+        return Promise.resolve(stringToArrayBuffer(bodyText));
       },
-    },
-  };
+      bodyUsed: false,
+      headers: {
+        get: function (name) {
+          const headerValues = {
+            'X-Google-header': signature,
+          };
+          return headerValues[name];
+        },
+      },
+    };
+  }
+  // TODO: Use a signed body text here.
+  // TODO: Use a real signature, corresponding to the real body
+  // text, above, so we can check that validation behaves
+  // correctly.
+  const mockResponse = createMockResponse(validCSSAmpData, '012345');
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
     xhrMock = sandbox.stub(Xhr.prototype, 'fetch');
     viewerForMock = sandbox.stub(Viewer.prototype, 'whenFirstVisible');
+    devErrorSpy = sandbox.spy(dev, 'error');
   });
   afterEach(() => {
     sandbox.restore();
@@ -281,6 +288,13 @@ describe('amp-a4a', () => {
       };
       expect(actual).to.deep.equal(expected);
     });
+    it("should log an error if the metadata isn't valid JSON", () => {
+      expect(AmpA4A.prototype.getAmpAdMetadata_(
+          '<script type="application/json" amp-ad-metadata>' +
+              "This isn't valid JSON!</script>")).to.be.null;
+      expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+          .to.be.true;
+    });
   });
 
   describe('#maybeRenderAmpAd_', () => {
@@ -307,8 +321,8 @@ describe('amp-a4a', () => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
         const a4a = new AmpA4A(a4aElement);
-        a4a.bytes_ = buildCreativeArrayBuffer();
-        a4a.maybeRenderAmpAd_(false).then(rendered => {
+        const bytes = buildCreativeArrayBuffer();
+        a4a.maybeRenderAmpAd_(false, bytes).then(rendered => {
           expect(rendered).to.be.false;
           expect(a4aElement.shadowRoot).to.be.null;
           expect(a4a.rendered_).to.be.false;
@@ -321,8 +335,8 @@ describe('amp-a4a', () => {
         const a4aElement = doc.createElement('amp-a4a');
         const a4a = new AmpA4A(a4aElement);
         a4a.adUrl_ = 'https://nowhere.org';
-        a4a.bytes_ = buildCreativeArrayBuffer();
-        a4a.maybeRenderAmpAd_(true).then(rendered => {
+        const bytes = buildCreativeArrayBuffer();
+        a4a.maybeRenderAmpAd_(true, bytes).then(rendered => {
           expect(a4aElement.shadowRoot).to.not.be.null;
           expect(rendered).to.be.true;
           const root = a4aElement.shadowRoot;
@@ -330,6 +344,23 @@ describe('amp-a4a', () => {
           expect(root.children[0].innerHTML).to.equal('p { background: green }');
           expect(root.children[1].tagName).to.equal('AMP-AD-BODY');
           expect(root.children[1].innerHTML).to.equal('<p>some text</p>');
+        });
+      });
+    });
+    it('should log an error and not render AMP natively', () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new AmpA4A(a4aElement);
+        a4a.adUrl_ = 'https://nowhere.org';
+        const bytes = buildCreativeArrayBuffer();
+        sandbox.stub(a4a, 'formatCSSBlock_').throws();
+        a4a.maybeRenderAmpAd_(true, bytes).then(rendered => {
+          expect(rendered).to.be.false;
+          expect(a4aElement.shadowRoot).to.be.null;
+          expect(a4a.rendered_).to.be.false;
+          expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+              .to.be.true;
         });
       });
     });
@@ -529,6 +560,38 @@ describe('amp-a4a', () => {
           });
         });
       })
+    });
+  });
+
+  describe('#validateAdResponse_', () => {
+    it("should log an error if the signature isn't valid base64", () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new MockA4AImpl(a4aElement);
+        const response = createMockResponse(
+            validCSSAmpData, "This isn't valid base64!");
+        return response.arrayBuffer()
+            .then(bytes => a4a.validateAdResponse_(response, bytes))
+            .then(valid => {
+              expect(valid).to.be.false;
+              expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+                  .to.be.true;
+            });
+      });
+    });
+  });
+
+  describe('#renderViaIframe_', () => {
+    it("should log an error if no adUrl is present", () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new MockA4AImpl(a4aElement);
+        a4a.renderViaIframe_();
+        expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+            .to.be.true;
+      });
     });
   });
 
