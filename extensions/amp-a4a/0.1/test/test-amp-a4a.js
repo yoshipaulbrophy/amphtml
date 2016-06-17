@@ -21,6 +21,7 @@ import {
 import {Xhr} from '../../../../src/service/xhr-impl';
 import {Viewer} from '../../../../src/service/viewer-impl';
 import {cancellation} from '../../../../src/error';
+import {dev} from '../../../../src/log';
 import {createIframePromise} from '../../../../testing/iframe';
 import {data as minimumAmp} from './testdata/minimum_valid_amp.reserialized';
 import {data as regexpsAmpData} from './testdata/regexps.reserialized';
@@ -50,20 +51,26 @@ describe('amp-a4a', () => {
   let sandbox;
   let xhrMock;
   let viewerForMock;
-  const mockResponse = {
-    arrayBuffer: function() {
-      return Promise.resolve(stringToArrayBuffer(validCSSAmp.reserialized));
-    },
-    bodyUsed: false,
-    headers: {
-      get: function(name) {
-        const headerValues = {
-          'X-Google-header': validCSSAmp.signature,
-        };
-        return headerValues[name];
+  let devErrorSpy;
+
+  function createMockResponse(bodyText, signature) {
+    return {
+      arrayBuffer: function() {
+        return Promise.resolve(stringToArrayBuffer(bodyText));
       },
-    },
-  };
+      bodyUsed: false,
+      headers: {
+        get: function(name) {
+          const headerValues = {
+            'X-Google-header': signature,
+          };
+          return headerValues[name];
+        },
+      },
+    };
+  }
+  const mockResponse = createMockResponse(
+      validCSSAmp.reserialized, validCSSAmp.signature);
 
   setPublicKeys([JSON.parse(validCSSAmp.publicKey)]);
 
@@ -71,6 +78,7 @@ describe('amp-a4a', () => {
     sandbox = sinon.sandbox.create();
     xhrMock = sandbox.stub(Xhr.prototype, 'fetch');
     viewerForMock = sandbox.stub(Viewer.prototype, 'whenFirstVisible');
+    devErrorSpy = sandbox.spy(dev, 'error');
   });
   afterEach(() => {
     sandbox.restore();
@@ -267,6 +275,14 @@ describe('amp-a4a', () => {
       };
       expect(actual).to.deep.equal(expected);
     });
+    it("should log an error if the metadata isn't valid JSON", () => {
+      expect(AmpA4A.prototype.getAmpAdMetadata_(
+          '<script type="application/json" amp-ad-metadata>' +
+              "This isn't valid JSON!</script>")).to.be.null;
+      expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+          .to.be.true;
+    });
+
   });
 
   describe('#maybeRenderAmpAd_', () => {
@@ -293,8 +309,8 @@ describe('amp-a4a', () => {
         const doc = fixture.doc;
         const a4aElement = doc.createElement('amp-a4a');
         const a4a = new AmpA4A(a4aElement);
-        a4a.bytes_ = buildCreativeArrayBuffer();
-        a4a.maybeRenderAmpAd_(false).then(rendered => {
+        const bytes = buildCreativeArrayBuffer();
+        a4a.maybeRenderAmpAd_(false, bytes).then(rendered => {
           expect(rendered).to.be.false;
           expect(a4aElement.shadowRoot).to.be.null;
           expect(a4a.rendered_).to.be.false;
@@ -307,8 +323,8 @@ describe('amp-a4a', () => {
         const a4aElement = doc.createElement('amp-a4a');
         const a4a = new AmpA4A(a4aElement);
         a4a.adUrl_ = 'https://nowhere.org';
-        a4a.bytes_ = buildCreativeArrayBuffer();
-        a4a.maybeRenderAmpAd_(true).then(rendered => {
+        const bytes = buildCreativeArrayBuffer();
+        a4a.maybeRenderAmpAd_(true, bytes).then(rendered => {
           expect(a4aElement.shadowRoot).to.not.be.null;
           expect(rendered).to.be.true;
           const root = a4aElement.shadowRoot;
@@ -317,6 +333,23 @@ describe('amp-a4a', () => {
             .equal('p { background: green }');
           expect(root.children[1].tagName).to.equal('AMP-AD-BODY');
           expect(root.children[1].innerHTML).to.equal('<p>some text</p>');
+        });
+      });
+    });
+    it('should log an error and not render AMP natively', () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new AmpA4A(a4aElement);
+        a4a.adUrl_ = 'https://nowhere.org';
+        const bytes = buildCreativeArrayBuffer();
+        sandbox.stub(a4a, 'formatCSSBlock_').throws();
+        a4a.maybeRenderAmpAd_(true, bytes).then(rendered => {
+          expect(rendered).to.be.false;
+          expect(a4aElement.shadowRoot).to.be.null;
+          expect(a4a.rendered_).to.be.false;
+          expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+              .to.be.true;
         });
       });
     });
@@ -524,9 +557,40 @@ describe('amp-a4a', () => {
     });
   });
 
+  describe('#validateAdResponse_', () => {
+    it("should log an error if the signature isn't valid base64", () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new MockA4AImpl(a4aElement);
+        const response = createMockResponse(
+            validCSSAmp.reserialized, "This isn't valid base64!");
+        return response.arrayBuffer()
+            .then(bytes => a4a.validateAdResponse_(response, bytes))
+            .then(valid => {
+              expect(valid).to.be.false;
+              expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+                  .to.be.true;
+            });
+      });
+    });
+  });
+
+  describe('#renderViaIframe_', () => {
+    it("should log an error if no adUrl is present", () => {
+      return createIframePromise().then(fixture => {
+        const doc = fixture.doc;
+        const a4aElement = doc.createElement('amp-a4a');
+        const a4a = new MockA4AImpl(a4aElement);
+        a4a.renderViaIframe_();
+        expect(devErrorSpy.calledOnce, 'dev.error called exactly once')
+            .to.be.true;
+      });
+    });
+  });
+
   // TODO(tdrl): Other cases to handle for parsing JSON metadata:
   //   - Metadata tag(s) missing
-  //   - JSON parse failure
   //   - Tags present, but JSON empty
   // Other cases to handle for CSS reformatting:
   //   - CSS embedded in larger doc

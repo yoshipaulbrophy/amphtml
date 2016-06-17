@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import {dev} from '../../../src/log';
-
 const TAG_ = 'CryptoVerifier';
 
 const isWebkit = window.crypto && 'webkitSubtle' in window.crypto;
@@ -96,12 +94,7 @@ export function verifySignature(data, signature, publicKeyInfos) {
   return Promise.all(publicKeyInfos.map(promise => promise.then(
     publicKeyInfo => verifyWithOnePublicKey(data, signature, publicKeyInfo))))
     // If any public key verifies, then the signature verifies.
-    .then(results => results.some(x => x))
-    .catch(error => {
-      // Note if anything goes wrong.
-      dev.error(TAG_, 'Error while verifying:', error);
-      throw error;
-    });
+    .then(results => results.some(x => x));
 }
 
 

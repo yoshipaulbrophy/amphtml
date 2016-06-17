@@ -25,7 +25,7 @@ import {cancellation} from '../../../src/error';
 import {insertAmpExtensionScript} from '../../../src/insert-extension';
 import {IntersectionObserver} from '../../../src/intersection-observer';
 import {isLayoutSizeDefined} from '../../../src/layout';
-import {user} from '../../../src/log';
+import {dev, user} from '../../../src/log';
 import {isArray, isObject} from '../../../src/types';
 import {viewerFor} from '../../../src/viewer';
 import {xhrFor} from '../../../src/xhr';
@@ -409,7 +409,9 @@ export class AmpA4A extends AMP.BaseElement {
               return verifySignature(adResponse.creativeArrayBuffer,
                                      base64ToByteArray(adResponse.signature),
                                      publicKeyInfos);
-            } catch (e) {}
+            } catch (err) {
+              dev.error(err, this.element);
+            }
           }
           return false;
         });
@@ -462,10 +464,10 @@ export class AmpA4A extends AMP.BaseElement {
           this.rendered_ = true;
           this.onAmpCreativeShadowDomRender();
           return Promise.resolve(true);
-        } catch (e) {
+        } catch (err) {
           // If we fail on any of the steps of Shadow DOM construction, just
           // render in iframe.
-          // TODO: report!
+          dev.error(err, this.element);
           return Promise.resolve(false);
         }
       }
@@ -484,7 +486,7 @@ export class AmpA4A extends AMP.BaseElement {
    */
   renderViaIframe_(opt_isNonAmpCreative) {
     if (!this.adUrl_) {
-      // Error should not occur.
+      dev.error('Error should not occur', this.element);
       return;
     }
     const iframe = this.element.ownerDocument.createElement('iframe');
@@ -510,7 +512,6 @@ export class AmpA4A extends AMP.BaseElement {
    *     the metadata markers on the ad text, or null if no metadata markers are
    *     found.
    * @private
-   * TODO(keithwrightbos@): report error cases
    */
   getAmpAdMetadata_(creative) {
     window.top.creative = creative;
@@ -524,6 +525,7 @@ export class AmpA4A extends AMP.BaseElement {
       return this.buildCreativeMetaData_(JSON.parse(
         creative.slice(metadataStart + METADATA_STRING.length, metadataEnd)));
     } catch (err) {
+      dev.error(err, this.element);
       return null;
     }
   }
