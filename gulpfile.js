@@ -37,6 +37,8 @@ var internalRuntimeToken = require('./build-system/internal-version').TOKEN;
 
 var argv = minimist(process.argv.slice(2), { boolean: ['strictBabelTransform'] });
 
+var cssOnly = argv['css-only'];
+
 require('./build-system/tasks');
 
 
@@ -53,6 +55,8 @@ function buildExtensions(options) {
   buildExtension('amp-access', '0.1', true, options);
   buildExtension('amp-accordion', '0.1', true, options);
   buildExtension('amp-ad', '0.1', false, options);
+  buildExtension('amp-ad-network-adsense-impl', 0.1, false, options);
+  buildExtension('amp-ad-network-doubleclick-impl', 0.1, false, options);
   buildExtension('amp-analytics', '0.1', false, options);
   buildExtension('amp-anim', '0.1', false, options);
   buildExtension('amp-audio', '0.1', false, options);
@@ -217,6 +221,9 @@ function watch() {
  * @return {!Stream} Gulp object
  */
 function buildExtension(name, version, hasCss, options) {
+  if (cssOnly && !hasCss) {
+    return Promise.resolve();
+  }
   options = options || {};
   var path = 'extensions/' + name + '/' + version;
   var jsPath = path + '/' + name + '.js';
@@ -248,6 +255,9 @@ function buildExtension(name, version, hasCss, options) {
       var jsCss = 'export const CSS = ' + css + ';\n';
       var builtName = 'build/' + name + '-' + version + '.css.js';
       fs.writeFileSync(builtName, jsCss, 'utf-8');
+      if (cssOnly) {
+        return Promise.resolve();
+      }
       return buildExtensionJs(path, name, version, options);
     });
   } else {
@@ -351,6 +361,7 @@ function buildExamples(watch) {
       });
 
   // Also update test-example-validation.js
+  buildExample('a4a.amp.html');
   buildExample('ads.amp.html');
   buildExample('ads.with.script.amp.html');
   buildExample('adsense.amp.html');

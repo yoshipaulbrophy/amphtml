@@ -53,6 +53,7 @@ import {parseUrl, getSourceUrl} from '../src/url';
 import {appnexus} from '../ads/appnexus';
 import {taboola} from '../ads/taboola';
 import {smartadserver} from '../ads/smartadserver';
+import {widespace} from '../ads/widespace';
 import {sovrn} from '../ads/sovrn';
 import {sortable} from '../ads/sortable';
 import {revcontent} from '../ads/revcontent';
@@ -79,6 +80,7 @@ import {nend} from '../ads/nend';
 import {adgeneration} from '../ads/adgeneration';
 import {genieessp} from '../ads/genieessp';
 import {kargo} from '../ads/kargo';
+import {pulsepoint} from '../ads/pulsepoint';
 
 /**
  * Whether the embed type may be used with amp-embed tag.
@@ -118,6 +120,7 @@ register('_ping_', function(win, data) {
 register('twitter', twitter);
 register('facebook', facebook);
 register('smartadserver', smartadserver);
+register('widespace', widespace);
 register('sovrn', sovrn);
 register('mediaimpact', mediaimpact);
 register('revcontent', revcontent);
@@ -144,6 +147,7 @@ register('nend', nend);
 register('adgeneration', adgeneration);
 register('genieessp', genieessp);
 register('kargo', kargo);
+register('pulsepoint', pulsepoint);
 
 // For backward compat, we always allow these types without the iframe
 // opting in.
