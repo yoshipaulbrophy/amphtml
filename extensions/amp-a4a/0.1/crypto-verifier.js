@@ -126,6 +126,9 @@ function verifyWithOnePublicKey(data, signature, publicKeyInfo) {
     name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-256',
   }, publicKeyInfo.cryptoKey, signature.subarray(5), signedData);
+  dev.info('CRYPTO', 'TDRL: raw data = ', new Uint8Array(data).join(' '));
+  dev.info('CRYPTO', 'TDRL: raw data length = ', data.byteLength);
+  dev.info('CRYPTO', 'TDRL: verifying bytes ', signedData.join(' '));
   dev.info('CRYPTO', 'TDRL: verification of sig = ', result);
   return result;
 }

@@ -66,6 +66,7 @@ export function googleAdsIsA4AEnabled(win, element, experimentId, branches) {
         // Page is on the "experiment" (i.e., use A4A rendering pathway)
         // branch of the overall traffic experiment.
         addExperimentIdToElement(branches.experiment, element);
+	addExperimentIdToElement('30269685', element);
         return true;
       } else {
         // Page is on the "control" (i.e., use traditional, 3p iframe

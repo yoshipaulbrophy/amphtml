@@ -291,7 +291,7 @@ export class AmpA4A extends AMP.BaseElement {
         this.adUrl_ = adUrl;
 	dev.info('A4A', 'TDRL: sending XHR for ', TDRL_type, '; size = ',
 		TDRL_size);
-        return this.sendXhrRequest_(adUrl);
+        return this.sendXhrRequest_(this.adUrl_);
       })
       .then(fetchResponse => {
         if (promiseId != this.promiseId_) {
@@ -504,7 +504,8 @@ export class AmpA4A extends AMP.BaseElement {
             try {
               // Among other things, the signature might not be proper base64.
               return verifySignature(
-                  response.creative, response.signature, publicKeyInfos);
+                  new Uint8Array(response.creative),
+		  response.signature, publicKeyInfos);
             } catch (e) {}
           }
           return false;
