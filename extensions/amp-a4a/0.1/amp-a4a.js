@@ -291,7 +291,7 @@ export class AmpA4A extends AMP.BaseElement {
         this.adUrl_ = adUrl;
 	dev.info('A4A', 'TDRL: sending XHR for ', TDRL_type, '; size = ',
 		TDRL_size);
-        return this.sendXhrRequest_(this.adUrl_);
+        return this.sendXhrRequest_(adUrl);
       })
       .then(fetchResponse => {
         if (promiseId != this.promiseId_) {
