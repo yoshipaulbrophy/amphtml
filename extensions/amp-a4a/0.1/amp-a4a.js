@@ -49,6 +49,9 @@ const modulus =
 
 const pubExp = 'AQAB';
 
+const devModulus =
+    'oDK9vY5WkwS25IJWhFTmyy_xTeBHA5b72On2FqhjZPLSwadlC0gZG0lvzPjxE1bakbAM3rR2mRJmtrKDAcZSZxIfxpVhG5e7yFAZURnKSKGHvLLwSeohnR6zHgZ0Rm6fnvBhYBpHGaFboPXgK1IjgVZ_aEq5CRj24JLvqovMtpJJXwJ1fndMprEfDAzw5rEzfZxvGP3QObEQENHAlyPe54Z0vfCYhiXLWhQuOyaKkVIf3xn7t6Pu7PbreCN9f-Ca8noVVKNUZCdlUqiQjXZZfu5pi8ZCto_HEN26hE3nqoEFyBWQwMvgJMhpkS2NjIX2sQuM5KangAkjJRe-Ej6aaQ';
+
 /**
  * The current set of public keys.
  *
@@ -60,6 +63,13 @@ let publicKeyInfos = [importPublicKey({
   kty: 'RSA',
   'n': modulus,
   'e': pubExp,
+  alg: 'RS256',
+  ext: true,
+}),
+importPublicKey({
+  kty: 'RSA',
+  n: devModulus,
+  e: pubExp,
   alg: 'RS256',
   ext: true,
 })];
@@ -234,6 +244,11 @@ export class AmpA4A extends AMP.BaseElement {
 
   /** @override */
   onLayoutMeasure() {
+    const TDRL_type = this.element.getAttribute('type');
+    const TDRL_size = this.element.getAttribute('width') + 'x' +
+	this.element.getAttribute('height');
+    dev.info('A4A', 'TDRL: onLayoutMeasure() called for type = ', TDRL_type,
+	    '; size = ', TDRL_size);
     if (this.apiHandler_) {
       this.apiHandler_.onLayoutMeasure();
     }
@@ -259,33 +274,45 @@ export class AmpA4A extends AMP.BaseElement {
     // promise chain due to cancel from unlayout, the promise will be rejected.
     this.promiseId_++;
     const promiseId = this.promiseId_;
+    dev.info('A4A', 'TDRL: constructing promise chain...');
     this.adPromise_ = viewerFor(this.getWin()).whenFirstVisible()
       .then(() => {
         if (promiseId != this.promiseId_) {
+	  dev.info('A4A', 'TDRL: cancelling chain for ', TDRL_type);
           return Promise.reject(cancellation());
         }
         return this.getAdUrl();
       })
       .then(adUrl => {
         if (promiseId != this.promiseId_) {
+	  dev.info('A4A', 'TDRL: cancelling chain for ', TDRL_type);
           return Promise.reject(cancellation());
         }
         this.adUrl_ = adUrl;
+	dev.info('A4A', 'TDRL: sending XHR for ', TDRL_type, '; size = ',
+		TDRL_size);
         return this.sendXhrRequest_(adUrl);
       })
       .then(fetchResponse => {
         if (promiseId != this.promiseId_) {
+	  dev.info('A4A', 'TDRL: cancelling chain for ', TDRL_type);
           return Promise.reject(cancellation());
         }
         if (fetchResponse && fetchResponse.arrayBuffer) {
+	  dev.info('A4A', 'TDRL: got complete response for ', TDRL_type,
+		 '; size = ', TDRL_size, '; validating');
           return fetchResponse.arrayBuffer().then(
             bytes => {
               if (promiseId != this.promiseId_) {
+		dev.info('A4A', 'TDRL: cancelling chain for ', TDRL_type);
                 return Promise.reject(cancellation());
               }
               return this.validateAdResponse_(fetchResponse, bytes)
                 .then(valid => {
+		  dev.info('A4A', 'TDRL: got validation response for ',
+			  TDRL_type, '; size = ', TDRL_size, ': ', valid);
                   if (promiseId != this.promiseId_) {
+		    dev.info('A4A', 'TDRL: cancelling chain for ', TDRL_type);
                     return Promise.reject(cancellation());
                   }
                   return this.maybeRenderAmpAd_(valid, bytes);
@@ -470,6 +497,8 @@ export class AmpA4A extends AMP.BaseElement {
   validateAdResponse_(fetchResponse, bytes) {
     return this.extractCreativeAndSignature(bytes, fetchResponse.headers)
         .then(response => {
+	  dev.info('A4A', 'TDRL: creative = ', response.creative,
+		   '; signature = ', response.signature);
           // Validate when we have a signature and we have native crypto.
           if (response.signature && verifySignatureIsAvailable()) {
             try {
