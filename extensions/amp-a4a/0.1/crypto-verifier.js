@@ -122,10 +122,12 @@ function verifyWithOnePublicKey(data, signature, publicKeyInfo) {
   signedData.set(data);
   signedData[data.length] = VERSION;
 
-  return crossCrypto.verify({
+  const result = crossCrypto.verify({
     name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-256',
   }, publicKeyInfo.cryptoKey, signature.subarray(5), signedData);
+  dev.info('CRYPTO', 'TDRL: verification of sig = ', result);
+  return result;
 }
 
 /**

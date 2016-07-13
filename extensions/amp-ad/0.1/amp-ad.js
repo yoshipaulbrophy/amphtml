@@ -59,6 +59,8 @@ export class AmpAd extends AMP.BaseElement {
   /** @override */
   upgradeCallback() {
     const type = this.element.getAttribute('type');
+    dev.info('AMP-AD', 'TDRL: Upgrade called with type = ', type);
+    dev.info('AMP-AD', 'TDRL: registry = ', a4aRegistry);
     if (!type) {
       // Unspecified or empty type.  Nothing to do here except bail out.
       return null;
@@ -66,6 +68,7 @@ export class AmpAd extends AMP.BaseElement {
     // TODO(tdrl): Check amp-ad registry to see if they have this already.
     if (!a4aRegistry[type] ||
         !a4aRegistry[type](this.getWin(), this.element)) {
+      dev.info('AMP-AD', 'TDRL: no registry entry found');
       // Network either has not provided any A4A implementation or the
       // implementation exists, but has explicitly chosen not to handle this
       // tag as A4A.  Fall back to the 3p implementation.
@@ -87,12 +90,15 @@ export class AmpAd extends AMP.BaseElement {
     // TODO(dvoytenko): Reimplement a4a via `upgradeCallback`.
     const type = dev.assert(this.element.getAttribute('type'),
         'Required attribute type');
+    dev.info('AMP-AD', 'TDRL: buildCallback entered for type = ', type);
     // Note: The insertAmpExtensionScript method will pick the version number.
     // If we ever reach a point at which there are different extensions with
     // different version numbers at play simultaneously, we'll have to make sure
     // that the loader can handle the case.
     const extensionTag = networkImplementationTag(type);
     const newChild = this.element.ownerDocument.createElement(extensionTag);
+
+    dev.info('AMP-AD', 'TDRL: loading script for ', type);
     /*OK*/insertAmpExtensionScript(this.getWin(), extensionTag, true);
     copyAttributes(this.element, newChild);
     this.element.appendChild(newChild);
