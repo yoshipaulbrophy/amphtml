@@ -20,6 +20,10 @@ chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
     // Massage to local path patterns.
     var path = details.url.substr('https://cdn.ampproject.org/'.length);
+    if (/^[cvri]\//.test(path)) {
+      return;
+    }
+    path = path.replace(/rtv\/\d+\//, '');
     if (/^v\d+\.js$/.test(path)) {
       path = 'dist/amp.js';
     } else {
@@ -27,7 +31,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       path = path.replace(/\.js$/, '.max.js');
     }
     return {
-      redirectUrl: 'http://localhost:8000/' + path
+      redirectUrl: 'https://localhost:8000/' + path
     };
   },
   {
@@ -47,10 +51,33 @@ chrome.webRequest.onBeforeRequest.addListener(
       path = path.replace(/\/f\.js$/, '/integration.js');
     }
     return {
-      redirectUrl: 'http://localhost:8000/' + path
+      redirectUrl: 'https://localhost:8000/' + path
     };
   },
   {
     urls: ['https://3p.ampproject.net/*']
   },
   ['blocking']);
+
+chrome.webRequest.onHeadersReceived.addListener(
+  function(details) {
+    var headers = details.responseHeaders;
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      if (header.name.toLowerCase() == 'content-security-policy') {
+        var idx = header.value.indexOf('script-src ');
+        if (idx != -1) {
+          idx += 'script-src '.length;
+          headers[i] = {
+            name: header.name,
+            value: header.value.slice(0, idx) + 'https://localhost:8000 ' +
+                header.value.slice(idx),
+          };
+        }
+      }
+    }
+    return {responseHeaders: headers};
+  },
+  {urls: ['https://cdn.ampproject.org/*']},
+  ["blocking", "responseHeaders"]
+);
