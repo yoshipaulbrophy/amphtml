@@ -45,8 +45,8 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
   /** @override */
   isValidElement() {
     return isGoogleAdsA4AValidEnvironment(this.getWin()) &&
-        this.isInAmpAdTag() &&
-        !document.querySelector('meta[name=amp-3p-iframe-src]');
+        this.isInAmpAdTag();// &&
+//        !document.querySelector('meta[name=amp-3p-iframe-src]');
   }
 
   /** @override */

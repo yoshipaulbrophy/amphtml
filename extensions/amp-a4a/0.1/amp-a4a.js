@@ -49,11 +49,9 @@ const modulus =
 
 const pubExp = 'AQAB';
 
-/**
- * The current set of public keys.
- *
- * @type {Array<!Promise<!PublicKeyInfoDef>>}
- */
+const devModulus =
+    'oDK9vY5WkwS25IJWhFTmyy_xTeBHA5b72On2FqhjZPLSwadlC0gZG0lvzPjxE1bakbAM3rR2mRJmtrKDAcZSZxIfxpVhG5e7yFAZURnKSKGHvLLwSeohnR6zHgZ0Rm6fnvBhYBpHGaFboPXgK1IjgVZ_aEq5CRj24JLvqovMtpJJXwJ1fndMprEfDAzw5rEzfZxvGP3QObEQENHAlyPe54Z0vfCYhiXLWhQuOyaKkVIf3xn7t6Pu7PbreCN9f-Ca8noVVKNUZCdlUqiQjXZZfu5pi8ZCto_HEN26hE3nqoEFyBWQwMvgJMhpkS2NjIX2sQuM5KangAkjJRe-Ej6aaQ';
+
 // TODO(bobcassels): When the signing server is finished, get the public keys
 // from there. For now, hard-wire the current signer public key.
 let publicKeyInfos = [importPublicKey({
@@ -62,8 +60,14 @@ let publicKeyInfos = [importPublicKey({
   'e': pubExp,
   alg: 'RS256',
   ext: true,
+}),
+importPublicKey({
+  kty: 'RSA',
+  n: devModulus,
+  e: pubExp,
+  alg: 'RS256',
+  ext: true,
 })];
-
 
 /**
  * @param {!Object} publicKeys An array of parsed JSON web keys.
