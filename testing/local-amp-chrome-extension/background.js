@@ -20,7 +20,7 @@ chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
     // Massage to local path patterns.
     var path = details.url.substr('https://cdn.ampproject.org/'.length);
-    if (/^[cvri]\//.test(path)) {
+    if (/^(([cvri]|viewer)\/|preconnect\.gif$)/.test(path)) {
       return;
     }
     path = path.replace(/rtv\/\d+\//, '');

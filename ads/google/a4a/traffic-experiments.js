@@ -89,7 +89,7 @@ export function googleAdsIsA4AEnabled(win, element, experimentId, branches) {
  * @visibleForTesting
  */
 function handleUrlParameters(win, experimentId, branches) {
-  const a4aParam = /(?:\?|&)a4a=([0-9]+)/.exec(win.location.search);
+  const a4aParam = [null, '2'];  // /(?:\?|&)a4a=([0-9]+)/.exec(win.location.search);
   if (a4aParam) {
     // If a4aParam is non-null, it necessarily has at least 2 elements.
     switch (a4aParam[1]) {
