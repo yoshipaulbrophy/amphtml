@@ -480,7 +480,7 @@ export class AmpA4A extends AMP.BaseElement {
               // Among other things, the signature might not be proper base64.
               return verifySignature(
                   new Uint8Array(response.creative),
-		  response.signature, publicKeyInfos);
+                  response.signature, publicKeyInfos);
             } catch (e) {}
           }
           return false;
