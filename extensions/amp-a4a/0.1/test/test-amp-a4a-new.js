@@ -127,7 +127,7 @@ describe('amp-a4a', () => {
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
 
-      return createAdTestingIframePromise().then(fixture => { debugger;
+      return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
             .to.be.true;
@@ -135,32 +135,360 @@ describe('amp-a4a', () => {
 
         // Check that we have the right number of keys.
         expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
         expect(a4a.keyInfoSetPromises_.length).to.equal(2);
-
-        // Ensure that each element is a Promise.
-        a4a.keyInfoSetPromises_.forEach(keyInfoSetPromise => {
-          expect(keyInfoSetPromise).to.be.instanceof(Promise);
-        });
 
         // Check that the keys are valid.
         const keyValidationPromises = a4a.keyInfoSetPromises_.map(
             keyInfoSetPromise => {
-              keyInfoSetPromise.then(keyInfoSet => {
+              expect(keyInfoSetPromise).to.be.instanceof(Promise);
+              return keyInfoSetPromise.then(keyInfoSet => {
                 expect(keyInfoSet).to.not.be.null;
                 expect(Array.isArray(keyInfoSet)).to.be.true;
                 expect(keyInfoSet.length).to.equal(1);
                 return keyInfoSet[0];
               })
-              .then(keyInfoPromise => {
-                return new Promise((resolve, reject) => {
-                    expect(keyInfoPromise).to.be.instanceof(Promise);
-                    resolve();
-                });
+              .then(keyInfo => {
+                expect(keyInfo).to.not.be.null;
+                expect(keyInfo.hash).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.be.instanceof(CryptoKey);
               });
             });
-        debugger;
-        Promise.all(keyValidationPromises);
+        return Promise.all(keyValidationPromises);
       });
     });
+
+    it('should retrieve no keys due to network error', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.reject("Network Error."));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+    it('should retrieve no keys due to response not being JSON', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve(validCSSAmp.publicKey));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+    it('should retrieve no keys due to response not being formatted correctly', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keeez: [JSON.parse(validCSSAmp.publicKey)]}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+        it('should retrieve no keys due to response not being formatted correctly', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keeez: []}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+    it('should retrieve no keys due to response not being formatted correctly', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keeez: []}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+    it('should retrieve one invalid key', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [{notAKey: 'invalid-key'}]}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        // Check that one key is valid and the other invalid.
+        const keyInfoSetPromise = a4a.keyInfoSetPromises_[0];
+        expect(keyInfoSetPromise).to.be.instanceof(Promise);
+        return keyInfoSetPromise.then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(1);
+          const keyInfoPromise = keyInfoSet[0];
+          expect(keyInfoPromise).to.not.be.null;
+          expect(keyInfoPromise).to.be.instanceof(Promise);
+          return keyInfoPromise.then(keyInfo => {
+            expect(keyInfo).to.be.null;
+          });
+        });
+      });
+    });
+
+    it('should retrieve one valid and one invalid key', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      const validKey = JSON.parse(validCSSAmp.publicKey);
+      const invalidKey = {notAKey: 'invalid-key'};
+
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [validKey, invalidKey]}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
+      useLocalDevKeyStub.returns(false);
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+
+        let validKeyCheck = false;
+        let invalidKeyCheck = false;
+
+        // Check that one key is valid and the other invalid.
+        const keyInfoSetPromise = a4a.keyInfoSetPromises_[0];
+        expect(keyInfoSetPromise).to.be.instanceof(Promise);
+        return keyInfoSetPromise.then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(2);
+          const promises = keyInfoSet.map(keyInfoPromise => {
+            expect(keyInfoPromise).to.not.be.null;
+            expect(keyInfoPromise).to.be.instanceof(Promise);
+            return keyInfoPromise.then(keyInfo => {
+              if (keyInfo) {
+                expect(keyInfo.hash).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.be.instanceof(CryptoKey);
+                validKeyCheck = true;
+              } else {
+                expect(keyInfo).to.be.null;
+                invalidKeyCheck = true;
+              }
+            })
+          });
+          return Promise.all(promises);
+        }).then(() => {
+          expect(validKeyCheck && invalidKeyCheck).to.be.true;
+        });
+      });
+    });
+
+    it('should retrieve one invalid key', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [{notAKey: 'invalid-key'}]}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(2);
+
+        let validKeyCheck;
+        let invalidKeyCheck;
+
+        // Check that one key is valid and the other invalid.
+        const testPromises = a4a.keyInfoSetPromises_.map(keyInfoSetPromise => {
+          expect(keyInfoSetPromise).to.be.instanceof(Promise);
+          return keyInfoSetPromise.then(keyInfoSet => {
+            expect(keyInfoSet).to.not.be.null;
+            expect(Array.isArray(keyInfoSet)).to.be.true;
+            expect(keyInfoSet.length).to.equal(1);
+            const keyInfoPromise = keyInfoSet[0];
+            expect(keyInfoPromise).to.not.be.null;
+            expect(keyInfoPromise).to.be.instanceof(Promise);
+            return keyInfoPromise.then(keyInfo => {
+              if (keyInfo) {
+                expect(keyInfo.hash).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.be.instanceof(CryptoKey);
+                validKeyCheck = true;
+              } else {
+                expect(keyInfo).to.be.null;
+                invalidKeyCheck = true;
+              }
+            });
+          });
+        });
+        return Promise.all(testPromises)
+      });
+    });
+
   });
 });
