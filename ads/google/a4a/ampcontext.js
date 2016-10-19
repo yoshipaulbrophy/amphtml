@@ -2,91 +2,98 @@ import '../../../3p/polyfills';
 import {listen} from '../../../src/event-helper';
 
 
-var windowContextCreated = new Event('windowContextCreated');
-
 window.context = window.context || (function() {
-  var SEND_EMBED_STATE = 'send-embed-state';
-  var EMBED_STATE = 'embed-state';
-  var SEND_EMBED_CONTEXT = 'send-embed-context';
-  var EMBED_CONTEXT = 'embed-context';
-  var SEND_INTERSECTIONS = 'send-intersections';
-  var INTERSECTION = 'intersection';
-  var EMBED_SIZE = 'embed-size';
+  // end private stuff in _
+  // const all this stuff
+  const MessageType_ = {
+    SEND_EMBED_STATE: 'send-embed-state',
+    EMBED_STATE: 'embed-state',
+    SEND_EMBED_CONTEXT: 'send-embed-context',
+    EMBED_CONTEXT: 'embed-context',
+    SEND_INTERSECTIONS: 'send-intersections',
+    INTERSECTION: 'intersection',
+    EMBED_SIZE: 'embed-size',
+  };
 
-  class AmpContext{
+  const windowContextCreated = new Event('windowContextCreated');
+
+  class AmpContext {
     // Make MessageType string enum
     constructor() {
-
-      /**
-       * Event listener to trigger context creation.
-       * @private {boolean}
-       */
-      this.createdEventListener_ = false;
-
-      /** Map message_type keys to boolean whether we should be listening to
-       *  that type of message
-       *  @private {object}
-       */
-      this.listenFor = {};
-
-      /** Map message_type keys to callback functions for when we receive
+      /** Map messageType keys to callback functions for when we receive
        *  that message
        *  @private {object}
        */
-      this.callbackFor = {};
+      this.callbackFor_ = {};
+
+      /**
+       *  Indicates when this object is actually ready to be used. Not true
+       *  until the metadata has been populated.
+       *
+       *  !!!!!!!!!!!!!!!!!!!           TODO      !!!!!!!!!!!!!!!!!!!!!!!!!!
+       *  Do we need to modify the old window.context to always
+       *  have this as true?? Or should we have something that says this is
+       *  is the new version? Right now, this will break the old one if
+       *  creatives start always checking this property, as it does not
+       *  exist on the old one.
+       *  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       */
+      this.isReady = false;
 
       // Do we want to pass sentinel via hash?  or name attribute?
-      var hashMatch = window.location.hash.match(/amp3pSentinel=((\d+)-\d+)/);
+      const hashMatch = window.location.hash.match(/amp3pSentinel=((\d+)-\d+)/);
       if (hashMatch) {
-	// Sentinel has the format of "$windowDepth-$randomNumber".
-	this.sentinel = hashMatch[1];
-	// Depth is measured from window.top.
-	this.depth = Number(hashMatch[2]);
-	this.ancestors = [];
-	for (let win = window; win && win != win.parent; win = win.parent) {
-	  // Add window keeping the top-most one at the front.
-	  this.ancestors.unshift(win.parent);
-	}
-	this.ampWindow = this.ancestors[this.depth];
+        // Sentinel has the format of "$windowDepth-$randomNumber".
+        this.sentinel = hashMatch[1];
+        // Depth is measured from window.top.
+        this.depth = Number(hashMatch[2]);
+        this.ancestors = [];
+        for (let win = window; win && win != win.parent; win = win.parent) {
+          // Add window keeping the top-most one at the front.
+          this.ancestors.unshift(win.parent);
+        }
+        this.ampWindow = this.ancestors[this.depth];
       } else {
-	// I'm broken?  Send ping?
+        // I'm broken?  Send ping?
       }
-      this.setupEventListener();
-      this.setupMetadata();
+      this.setupEventListener_();
+      this.setupMetadata_();
     }
 
     /**
      *  Request all of the metadata attributes for context and add them to
      *  the class.
      *  IDEALLY THIS IS PASSED TO IFRAME ALONG WITH SENTINEL
+     *  @private
      */
-    setupMetadata(){
+    setupMetadata_() {
       // Always register listener before starting handshake
-      var windowContext = this;
-      this.registerCallback(EMBED_CONTEXT, function(metadata){
-	// Any need to verify "correctness" of metadata?
-	windowContext.location = metadata.location;
-	windowContext.canonicalUrl = metadata.canonicalUrl;
-	windowContext.clientId = metadata.clientId;
-	windowContext.pageViewId = metadata.pageViewId;
-	windowContext.sentinel = metadata.sentinel;
-	windowContext.startTime = metadata.startTime;
-	windowContext.referrer = metadata.referrer;
+      this.registerCallback_(MessageType_.EMBED_CONTEXT, metadata => {
+        // Any need to verify "correctness" of metadata?
+        this.location = metadata.location;
+        this.canonicalUrl = metadata.canonicalUrl;
+        this.clientId = metadata.clientId;
+        this.pageViewId = metadata.pageViewId;
+        this.sentinel = metadata.sentinel;
+        this.startTime = metadata.startTime;
+        this.referrer = metadata.referrer;
+        this.isReady = true;
+        window.dispatchEvent(windowContextCreated);
       });
       this.ampWindow.postMessage({
-	sentinel: this.sentinel,
-	type: SEND_EMBED_CONTEXT
+        sentinel: this.sentinel,
+        type: MessageType_.SEND_EMBED_CONTEXT,
       }, '*');
     }
 
     /**
      *
      */
-    registerCallback(message_type, callback) {
+    registerCallback_(messageType, callback) {
       // implicitly this causes previous callback to be dropped!
       // Should it be an array?  See what current window.context does
-      this.callbackFor[message_type] = callback;
-      return () => { delete this.callbackFor[message_type]; };
+      this.callbackFor_[messageType] = callback;
+      return () => { delete this.callbackFor_[messageType]; };
     }
 
     /**
@@ -94,30 +101,31 @@ window.context = window.context || (function() {
      *   The actual implementation only uses a single event listener for all of
      *   the different messages, and simply diverts the message to be handled
      *   by different callbacks.
+     * @private
      */
-    setupEventListener(){
+    setupEventListener_() {
       listen(window, 'message', message => {
-	// Does it look a message from AMP?
-	if (message.source == this.ampWindow && message.data &&
+        // Does it look a message from AMP?
+        if (message.source == this.ampWindow && message.data &&
             message.data.indexOf('amp-') == 0) {
-	  var changes;
-	  var embedState;
-	  // See if we can parse the payload.
-	  try {
-            var payload = JSON.parse(message.data.substring(4));
+          // See if we can parse the payload.
+          try {
+            const payload = JSON.parse(message.data.substring(4));
             // Check the sentinel as well.
-            if (payload.sentinel == this.sentinel && this.callbackFor[payload.type]) {
-	      try {
-	        // We should probably report exceptions within callback
-		this.callbackFor[payload.type](payload);
-	      } catch (err) {
-		user().error(`Error in registered callback ${payload.type}`, err);
-	      }
+            if (payload.sentinel == this.sentinel &&
+		this.callbackFor_[payload.type]) {
+              try {
+                // We should probably report exceptions within callback
+                this.callbackFor_[payload.type](payload);
+              } catch (err) {
+                user().error(`Error in registered callback ${payload.type}`,
+			err);
+              }
             }
-	  } catch (e) {
+          } catch (e) {
             // JSON parsing failed. Ignore the message.
-	  }
-	}
+          }
+        }
       });
     };
   };
@@ -129,11 +137,12 @@ window.context = window.context || (function() {
    *  @returns {function} that when called stops triggering the callback
    *    every time we receive a page visibility message.
    */
-  AmpContext.prototype.observePageVisibility = function(callback){
-    var stopObserveFunc = this.registerCallback(EMBED_STATE, callback);
+  AmpContext.prototype.observePageVisibility = function(callback) {
+    const stopObserveFunc = this.registerCallback_(MessageType_.EMBED_STATE,
+						 callback);
     this.ampWindow.postMessage({
       sentinel: this.sentinel,
-      type: SEND_EMBED_STATE
+      type: MessageType_.SEND_EMBED_STATE,
     }, '*');
 
     return stopObserveFunc;
@@ -148,10 +157,11 @@ window.context = window.context || (function() {
 
    */
   AmpContext.prototype.observeIntersection = function(callback) {
-    var stopObserveFunc = this.registerCallback(INTERSECTION, callback);
+    const stopObserveFunc = this.registerCallback_(MessageType_.INTERSECTION,
+						 callback);
     this.ampWindow.postMessage({
       sentinel: this.sentinel,
-      type: SEND_INTERSECTIONS
+      type: MessageType_.SEND_INTERSECTIONS,
     }, '*');
 
     return stopObserveFunc;
@@ -163,16 +173,14 @@ window.context = window.context || (function() {
    *  @param (int) height The new height for the ad we are requesting.
    *  @param (int) width The new width for the ad we are requesting.
    */
-  AmpContext.prototype.resizeAd = function(height, width){
+  AmpContext.prototype.resizeAd = function(height, width) {
     this.ampWindow.postMessage({
       sentinel: this.sentinel,
-      type: EMBED_SIZE,
-      width: width,
-      height: height
+      type: MessageType_.EMBED_SIZE,
+      width,
+      height,
     }, '*');
   };
 
   return new AmpContext();
 })();
-
-window.dispatchEvent(windowContextCreated);
