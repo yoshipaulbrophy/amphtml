@@ -32,7 +32,20 @@ import {parseQueryString} from '../../../src/url';
 /** @typedef {{string: {branches: !Branches}}} */
 export let Branches;
 
-/** @typedef {{control: string, experiment: string}} */
+/**
+ * Experiment ID matching total traffic as well as optional slices for
+ * client-side identification of traffic source (to be used to subclassify)
+ * traffic such that if predicate condition matches, then id is appended
+ * to list experiment IDs sent with ad request.
+ * @typedef {{id: string, opt_slices:
+ *    Array(!{{condition: function(!Window):boolean, id: string}})=}}
+ */
+export let ExperimentIdAndSlices;
+
+/**
+ *
+ * @typedef {{control: !ExperimentIdAndSlices,
+              experiment: !ExperimentIdAndSlices}} */
 export let ExperimentInfo;
 
 /** @type {!string} @private */
@@ -75,7 +88,7 @@ export function googleAdsIsA4AEnabled(win, element, experimentName,
     // randomlySelectUnsetPageExperiments won't add new IDs if
     // maybeSetExperimentFromUrl has already set something for this
     // experimentName.
-    randomlySelectUnsetPageExperiments(win, experimentInfo);
+    randomlySelectUnsetPageExperiments(win, element, experimentInfo);
     if (isExperimentOn(win, experimentName)) {
       // Page is selected into the overall traffic experiment.
       const selectedBranch = getPageExperimentBranch(win, experimentName);
@@ -83,8 +96,8 @@ export function googleAdsIsA4AEnabled(win, element, experimentName,
       // Detect whether page is on the "experiment" (i.e., use A4A rendering
       // pathway) branch of the overall traffic experiment or it's on the
       // "control" (i.e., use traditional, 3p iframe rendering pathway).
-      return selectedBranch == internalBranches.experiment ||
-          selectedBranch == externalBranches.experiment ||
+      return selectedBranch == internalBranches.experiment.id ||
+          selectedBranch == externalBranches.experiment.id ||
           selectedBranch == MANUAL_EXPERIMENT_ID;
     }
   }
@@ -112,18 +125,23 @@ export function googleAdsIsA4AEnabled(win, element, experimentName,
  *   - `2`: Ad is on the experimental branch of the overall A4A-vs-3p iframe
  *     experiment.  Ad will render via the A4A path, including early ad
  *     request and (possibly) early rendering in shadow DOM or iframe.
+ * Optional "slice" experiment ids for each branch will be appended to the
+ * element data-experiment-id attribute if its condition evaluates to true.
+ * These are treated as logging only ids in that they are not used within
+ * client-side code to alter behavior.
  *
  * @param {!Window} win  Window.
  * @param {!Element} element Ad tag Element.
  * @param {!string} experimentName  Name of the overall experiment.
- * @param {!string} controlBranchId  Experiment ID string for control branch of
- *   the overall experiment.
- * @param {!string} treatmentBranchId  Experiment ID string for the 'treatment'
- *   (i.e., a4a) branch of the overall experiment.
+ * @param {!ExperimentIdAndSlices} controlBranch  Experiment info for
+ *   control branch of the overall experiment along with optional slices.
+ * @param {!ExperimentIdAndSlices} treatmentBranch  Experiment info for
+ *   the 'treatment' (i.e., a4a) branch of the overall experiment along with
+ *   optional slices.
  * @param {!string} manualId  ID of the manual experiment.
  */
 function maybeSetExperimentFromUrl(win, element, experimentName,
-    controlBranchId, treatmentBranchId, manualId) {
+    controlBranch, treatmentBranch, manualId) {
   const expParam = viewerForDoc(element).getParam('exp') ||
       parseQueryString(win.location.search)['exp'];
   if (!expParam) {
@@ -140,16 +158,36 @@ function maybeSetExperimentFromUrl(win, element, experimentName,
   const argMapping = {
     '-1': manualId,
     '0': null,
-    '1': controlBranchId,
-    '2': treatmentBranchId,
+    '1': controlBranch,
+    '2': treatmentBranch,
   };
   if (argMapping.hasOwnProperty(arg)) {
-    forceExperimentBranch(win, experimentName, argMapping[arg]);
+    forceExperimentBranch(win, experimentName, argMapping[arg].id);
+    applySliceExperimentIds(argMapping[arg], win, element);
   } else {
     dev().warn('a4a-config', 'Unknown a4a URL parameter: ', a4aParam,
         ' expected one of -1 (manual), 0 (not in experiment), 1 (control ' +
         'branch), or 2 (a4a experiment branch)');
   }
+}
+
+/**
+ * If slice condition evaluates to true, it's experiment ID is added
+ * to the element experiment data attribute so that it will be included
+ * in the request.
+ * @param {!ExperimentIdAndSlices} experimentIdAndSlices
+ * @param {!Window} win
+ * @param {!Element} element
+ */
+function applySliceExperimentIds(experimentIdAndSlices, win, element) {
+  if (!experimentIdAndSlices.opt_slices) {
+    return;
+  }
+  experimentIdAndSlices.opt_slices.forEach(slice => {
+    if (slice.condition(win)) {
+      addExperimentIdToElement(slice.id, element);
+    }
+  });
 }
 
 // TODO(tdrl): New test case: Invoke randomlySelectUnsetPageExperiments twice for different
@@ -206,11 +244,12 @@ function selectRandomProperty(obj) {
  *
  * @param {!Window} win Window context on which to save experiment
  *     selection state.
+ * @param {!Element} element Ad tag Element.
  * @param {!Object<string,!ExperimentInfo>} experiments  Set of experiments to
  *     configure for this page load.
  * @visibleForTesting
  */
-export function randomlySelectUnsetPageExperiments(win, experiments) {
+export function randomlySelectUnsetPageExperiments(win, element, experiments) {
   win.pageExperimentBranches = win.pageExperimentBranches || {};
   if (getMode(win).localDev) {
     // In local dev mode, it can be difficult to configure AMP_CONFIG
@@ -234,7 +273,8 @@ export function randomlySelectUnsetPageExperiments(win, experiments) {
         isExperimentOn(win, experimentName)) {
       const branches = experiments[experimentName];
       const branch = selectRandomProperty(branches);
-      win.pageExperimentBranches[experimentName] = branches[branch];
+      win.pageExperimentBranches[experimentName] = branches[branch].id;
+      applySliceExperimentIds(branches[branch], win, element);
     }
   }
 }
