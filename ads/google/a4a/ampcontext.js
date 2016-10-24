@@ -14,6 +14,8 @@ window.context = window.context || (function() {
     SEND_INTERSECTIONS: 'send-intersections',
     INTERSECTION: 'intersection',
     EMBED_SIZE: 'embed-size',
+    EMBED_SIZE_CHANGED: 'embed-size-changed',
+    EMBED_SIZE_DENIED: 'embed-size-denied',
   };
 
   const windowContextCreated = new Event('windowContextCreated');
@@ -170,10 +172,10 @@ window.context = window.context || (function() {
   /**
    *  Send message to runtime requesting to resize ad to height and width.
    *    This is not guaranteed to succeed. All this does is make the request.
-   *  @param (int) height The new height for the ad we are requesting.
-   *  @param (int) width The new width for the ad we are requesting.
+   *  @param {int} height The new height for the ad we are requesting.
+   *  @param {int} width The new width for the ad we are requesting.
    */
-  AmpContext.prototype.resizeAd = function(height, width) {
+  AmpContext.prototype.requestResize = function(height, width) {
     this.ampWindow.postMessage({
       sentinel: this.sentinel,
       type: MessageType_.EMBED_SIZE,
@@ -181,6 +183,35 @@ window.context = window.context || (function() {
       height,
     }, '*');
   };
+
+  /**
+   *  Allows a creative to set the callback function for when the resize
+   *    request returns a success. The callback should be set before resizeAd
+   *    is ever called.
+   *  @param {function(requestedHeight, requestedWidth)} callback Function
+   *    to call if the resize request succeeds.
+   */
+  AmpContext.prototype.onResizeSuccess = function(callback){
+    this.registerCallback_(MessageType_.EMBED_SIZE_CHANGED,
+			   function(obj){
+			     callback(obj.requestedHeight, obj.requestedWidth)
+			   });
+  };
+
+  /**
+   *  Allows a creative to set the callback function for when the resize
+   *    request is denied. The callback should be set before resizeAd
+   *    is ever called.
+   *  @param {function(requestedHeight, requestedWidth)} callback Function
+   *    to call if the resize request is denied.
+   */
+  AmpContext.prototype.onResizeDenied = function(callback){
+    this.registerCallback_(MessageType_.EMBED_SIZE_DENIED,
+			   function(obj){
+			     callback(obj.requestedHeight, obj.requestedWidth)
+			   });
+  };
+
 
   return new AmpContext();
 })();
