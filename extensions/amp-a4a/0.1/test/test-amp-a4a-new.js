@@ -116,6 +116,54 @@ describe('amp-a4a', () => {
     sandbox.restore();
   });
 
+  describe('#getSigningServiceNames', () => {
+    it('should retrieve no valid keys', () => {
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
+
+      const getSigningServiceNamesMock = sandbox.stub(AmpA4A.prototype,
+          'getSigningServiceNames');
+      getSigningServiceNamesMock.throws("Not implemented");
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.keyInfoSetPromises_).to.not.be.null;
+        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
+        expect(a4a.keyInfoSetPromises_.length).to.equal(2);
+
+        // Check that the keys are valid.
+        const keyValidationPromises = a4a.keyInfoSetPromises_.map(
+            keyInfoSetPromise => {
+              expect(keyInfoSetPromise).to.be.instanceof(Promise);
+              return keyInfoSetPromise.then(keyInfoSet => {
+                expect(keyInfoSet).to.not.be.null;
+                expect(Array.isArray(keyInfoSet)).to.be.true;
+                expect(keyInfoSet.length).to.equal(1);
+                return keyInfoSet[0];
+              })
+              .then(keyInfo => {
+                expect(keyInfo).to.not.be.null;
+                expect(keyInfo.hash).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.not.be.null;
+                expect(keyInfo.cryptoKey).to.be.instanceof(CryptoKey);
+              });
+            });
+        return Promise.all(keyValidationPromises);
+      });
+
+    });
+  });
+
   describe('#getKeyInfoSets_', () => {
     it('should retrieve two valid keys (including dev key)', () => {
 
