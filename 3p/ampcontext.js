@@ -1,8 +1,12 @@
-import '../../../3p/polyfills';
-import {listen} from '../../../src/event-helper';
-import {user} from '../../../src/log';
+import './polyfills';
+import {listen} from '../src/event-helper';
+import {user} from '../src/log';
 
-
+/**
+ *  If window.context does not exist, we must instantiate a replacement and
+ *  assign it to window.context, to provide the creative with all the required
+ *  functionality.
+ */
 window.context = window.context || (function() {
   // end private stuff in _
   // const all this stuff
