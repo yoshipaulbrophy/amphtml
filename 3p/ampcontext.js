@@ -186,11 +186,9 @@ window.context = window.context || (function() {
    *  @param {function(requestedHeight, requestedWidth)} callback Function
    *    to call if the resize request succeeds.
    */
-  AmpContext.prototype.onResizeSuccess = function(callback){
-    this.registerCallback_(MessageType_.EMBED_SIZE_CHANGED,
-			   function(obj){
-			     callback(obj.requestedHeight, obj.requestedWidth)
-			   });
+  AmpContext.prototype.onResizeSuccess = function(callback) {
+    this.registerCallback_(MessageType_.EMBED_SIZE_CHANGED, function(obj) {
+      callback(obj.requestedHeight, obj.requestedWidth); });
   };
 
   /**
@@ -200,11 +198,9 @@ window.context = window.context || (function() {
    *  @param {function(requestedHeight, requestedWidth)} callback Function
    *    to call if the resize request is denied.
    */
-  AmpContext.prototype.onResizeDenied = function(callback){
-    this.registerCallback_(MessageType_.EMBED_SIZE_DENIED,
-			   function(obj){
-			     callback(obj.requestedHeight, obj.requestedWidth)
-			   });
+  AmpContext.prototype.onResizeDenied = function(callback) {
+    this.registerCallback_(MessageType_.EMBED_SIZE_DENIED, function(obj) {
+      callback(obj.requestedHeight, obj.requestedWidth); });
   };
 
 
