@@ -44,7 +44,6 @@ window.context = window.context || (function() {
        *  exist on the old one.
        *  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        */
-      this.isReady = false;
 
       // Do we want to pass sentinel via hash?  or name attribute?
       const hashMatch = window.location.hash.match(/amp3pSentinel=((\d+)-\d+)/);
@@ -69,27 +68,19 @@ window.context = window.context || (function() {
     /**
      *  Request all of the metadata attributes for context and add them to
      *  the class.
-     *  IDEALLY THIS IS PASSED TO IFRAME ALONG WITH SENTINEL
      *  @private
      */
     setupMetadata_() {
-      // Always register listener before starting handshake
-      this.registerCallback_(MessageType_.EMBED_CONTEXT, metadata => {
-        // Any need to verify "correctness" of metadata?
-        this.location = metadata.location;
-        this.canonicalUrl = metadata.canonicalUrl;
-        this.clientId = metadata.clientId;
-        this.pageViewId = metadata.pageViewId;
-        this.sentinel = metadata.sentinel;
-        this.startTime = metadata.startTime;
-        this.referrer = metadata.referrer;
-        this.isReady = true;
-        window.dispatchEvent(windowContextCreated);
-      });
-      this.ampWindow.postMessage({
-        sentinel: this.sentinel,
-        type: MessageType_.SEND_EMBED_CONTEXT,
-      }, '*');
+      const data = window.name;
+      const context = data._context;
+      this.location = context.location;
+      this.canonicalUrl = context.canonicalUrl;
+      this.clientId = context.clientId;
+      this.pageViewId = context.pageViewId;
+      this.sentinel = context.sentinel;
+      this.startTime = context.startTime;
+      this.referrer = context.referrer;
+      window.dispatchEvent(windowContextCreated);
     }
 
     /**
