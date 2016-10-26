@@ -132,7 +132,8 @@ const AMP_EMBED_ALLOWED = {
   zergnet: true,
 };
 
-const attributesString = window.name.split("<wc>")[1];
+// TODO : serialize / deserialize util function
+const attributesString = window.name.split('<wc>')[1];
 const data = JSON.parse(attributesString);
 window.context = data._context;
 
@@ -479,7 +480,7 @@ function reportRenderedEntityIdentifier(entityId) {
  *  @param {object} iframe A creative iframe that will be added to the
  *    DOM.
  */
-function addContextToIframe(iframe){
+function addContextToIframe(iframe) {
   iframe.name = attributesString;
 }
 
