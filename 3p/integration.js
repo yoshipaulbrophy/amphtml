@@ -132,7 +132,8 @@ const AMP_EMBED_ALLOWED = {
   zergnet: true,
 };
 
-const data = parseFragment(location.hash);
+const attributesString = window.name.split("<wc>")[1];
+const data = JSON.parse(attributesString);
 window.context = data._context;
 
 // This should only be invoked after window.context is set
@@ -360,6 +361,7 @@ window.draw3p = function(opt_configCallback, opt_allowed3pTypes,
     window.context.reportRenderedEntityIdentifier =
         reportRenderedEntityIdentifier;
     window.context.computeInMasterFrame = computeInMasterFrame;
+    window.context.addContextToIframe = addContextToIframe;
     delete data._context;
     manageWin(window);
     installEmbedStateListener();
@@ -470,6 +472,15 @@ function reportRenderedEntityIdentifier(entityId) {
   nonSensitiveDataPostMessage('entity-id', {
     id: entityId,
   });
+}
+
+/**
+ *  Adds the serialized ad attributes to an iframe's name attribute.
+ *  @param {object} iframe A creative iframe that will be added to the
+ *    DOM.
+ */
+function addContextToIframe(iframe){
+  iframe.name = attributesString;
 }
 
 /**

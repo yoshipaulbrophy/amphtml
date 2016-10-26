@@ -115,8 +115,9 @@ export function getIframe(parentWindow, parentElement, opt_type, opt_context) {
   const baseUrl = getBootstrapBaseUrl(parentWindow);
   const host = parseUrl(baseUrl).hostname;
   // Pass ad attributes to iframe via the fragment.
-  const src = baseUrl + '#' + JSON.stringify(attributes);
-  const name = host + '_' + attributes.type + '_' + count[attributes.type]++;
+  const src = baseUrl;
+  const name = host + '_' + attributes.type + '_' + count[attributes.type]++ +
+      '_<wc>' + JSON.stringify(attributes) + '<wc>';
 
   iframe.src = src;
   iframe.name = name;
