@@ -30,6 +30,7 @@ import {data as testFragments} from './testdata/test_fragments';
 import {data as expectations} from './testdata/expectations';
 import {installDocService} from '../../../../src/service/ampdoc-impl';
 import {a4aRegistry} from '../../../../ads/_a4a-config';
+import '../../../../extensions/amp-ad/0.1/amp-ad-xorigin-iframe-handler';
 import * as sinon from 'sinon';
 
 const XHR_URL = 'http://iframe.localhost:' + location.port +
@@ -123,17 +124,9 @@ describe('amp-a4a', () => {
     return element;
   }
 
-  function verifyNonAMPRender(a4a, win) {
+  function verifyNonAMPRender(a4a) {
     a4a.onAmpCreativeRender = () => {
       assert.fail('AMP creative should never have rendered!');
-    };
-    a4a.onCrossDomainIframeCreated = iframe => {
-      // Iframe should be hidden at time of creation and only made visible
-      // after load.
-      expect(isStyleVisible(win, iframe)).to.be.false;
-      iframe.onload = () => {
-        expect(isStyleVisible(win, iframe)).to.be.true;
-      };
     };
   }
 
@@ -170,7 +163,7 @@ describe('amp-a4a', () => {
     });
 
     it('for SafeFrame rendering case', () => {
-      verifyNonAMPRender(a4a, fixture.win);
+      verifyNonAMPRender(a4a);
       // Make sure there's no signature, so that we go down the 3p iframe path.
       mockResponse.headers.delete('X-Google-header');
       // If rendering type is safeframe, we SHOULD attach a SafeFrame.
@@ -188,7 +181,7 @@ describe('amp-a4a', () => {
     });
 
     it('for cached content iframe rendering case', () => {
-      verifyNonAMPRender(a4a, fixture.win);
+      verifyNonAMPRender(a4a);
       // Make sure there's no signature, so that we go down the 3p iframe path.
       mockResponse.headers.delete('X-Google-header');
       fixture.doc.body.appendChild(a4aElement);
@@ -275,7 +268,7 @@ describe('amp-a4a', () => {
         a4aElement.setAttribute('height', 50);
         a4aElement.setAttribute('type', 'adsense');
         const a4a = new MockA4AImpl(a4aElement);
-        verifyNonAMPRender(a4a, fixture.win);
+        verifyNonAMPRender(a4a);
         doc.body.appendChild(a4aElement);
         a4a.onLayoutMeasure();
         return a4a.layoutCallback().then(() => {
@@ -310,7 +303,7 @@ describe('amp-a4a', () => {
           a4aElement.setAttribute('height', 50);
           a4aElement.setAttribute('type', 'adsense');
           const a4a = new MockA4AImpl(a4aElement);
-          verifyNonAMPRender(a4a, fixture.win);
+          verifyNonAMPRender(a4a);
           doc.body.appendChild(a4aElement);
           a4a.onLayoutMeasure();
           return a4a.layoutCallback().then(() => {
@@ -459,7 +452,7 @@ describe('amp-a4a', () => {
         a4aElement.setAttribute('height', 50);
         a4aElement.setAttribute('type', 'adsense');
         const a4a = new MockA4AImpl(a4aElement);
-        verifyNonAMPRender(a4a, fixture.win);
+        verifyNonAMPRender(a4a);
         const getAdUrlSpy = sandbox.spy(a4a, 'getAdUrl');
         sandbox.stub(a4a, 'extractCreativeAndSignature').returns(
           Promise.resolve({creative: mockResponse.arrayBuffer()}));
@@ -562,7 +555,7 @@ describe('amp-a4a', () => {
         a4aElement.setAttribute('type', 'adsense');
         const a4a = new MockA4AImpl(a4aElement);
         const getAdUrlSpy = sandbox.spy(a4a, 'getAdUrl');
-        verifyNonAMPRender(a4a, fixture.win);
+        verifyNonAMPRender(a4a);
         a4a.onLayoutMeasure();
         expect(a4a.adPromise_).to.be.instanceof(Promise);
         return a4a.layoutCallback().then(() => {
@@ -584,7 +577,7 @@ describe('amp-a4a', () => {
         const doc = fixture.doc;
         const a4aElement = createA4aElement(doc);
         const a4a = new MockA4AImpl(a4aElement);
-        verifyNonAMPRender(a4a, fixture.win);
+        verifyNonAMPRender(a4a);
         a4a.onLayoutMeasure();
         return a4a.adPromise_.then(() => a4a.layoutCallback().then(() => {
           a4a.vsync_.runScheduledTasks_();
@@ -606,7 +599,7 @@ describe('amp-a4a', () => {
         const doc = fixture.doc;
         const a4aElement = createA4aElement(doc);
         const a4a = new MockA4AImpl(a4aElement);
-        verifyNonAMPRender(a4a, fixture.win);
+        verifyNonAMPRender(a4a);
         a4a.onLayoutMeasure();
         const layoutCallbackPromise = a4a.layoutCallback();
         rejectXhr(new Error('XHR Error'));

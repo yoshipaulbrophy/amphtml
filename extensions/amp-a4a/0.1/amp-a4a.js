@@ -582,15 +582,6 @@ export class AmpA4A extends AMP.BaseElement {
   }
 
   /**
-   * @param {!Element} iframe that was just created.  To be overridden for
-   * testing.
-   * @visibleForTesting
-   */
-  onCrossDomainIframeCreated(iframe) {
-    dev().info('A4A', `onCrossDomainIframeCreated ${iframe}`);
-  }
-
-  /**
    * Send ad request, extract the creative and signature from the response.
    * @param {string} adUrl Request URL to send XHR to.
    * @return {!Promise<?../../../src/service/xhr-impl.FetchResponse>}
@@ -766,14 +757,7 @@ export class AmpA4A extends AMP.BaseElement {
     // TODO(keithwrightbos): noContentCallback?
     this.xOriginIframeHandler_ = new AMP.AmpAdXOriginIframeHandler(this);
     this.rendered_ = true;
-    // Set opt_defaultVisible to true as 3p draw code never executed causing
-    // render-start event never to fire which will remove visiblity hidden.
-    const handlerPromise = this.xOriginIframeHandler_.init(
-      iframe, /* opt_isA4A */ true);
-    if (getMode().localDev || getMode().test) {
-      this.onCrossDomainIframeCreated(iframe);
-    }
-    return handlerPromise;
+    return this.xOriginIframeHandler_.init(iframe, /* opt_isA4A */ true);
   }
 
   /**
