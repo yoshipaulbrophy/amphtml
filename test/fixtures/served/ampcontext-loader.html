@@ -1,0 +1,11 @@
+<html>
+  <body>
+    <script>
+      let iframe = document.createElement("iframe");
+      iframe.src = "./ampcontext_testad.html";
+      iframe.src += window.location.hash;
+      iframe.name = window.name;
+      document.body.appendChild(iframe);
+    </script>
+  </body>
+</html>
