@@ -2,6 +2,8 @@ import './polyfills';
 import {listen} from '../src/event-helper';
 import {user} from '../src/log';
 
+console.log("AMPCONTEXT.JS");
+
 /**
  *  If window.context does not exist, we must instantiate a replacement and
  *  assign it to window.context, to provide the creative with all the required
@@ -22,7 +24,7 @@ window.context = window.context || (function() {
     EMBED_SIZE_DENIED: 'embed-size-denied',
   };
 
-  const windowContextCreated = new Event('windowContextCreated');
+  //const windowContextCreated = new Event('windowContextCreated');
 
   class AmpContext {
     constructor() {
@@ -31,25 +33,11 @@ window.context = window.context || (function() {
        *  @private {object}
        */
       this.callbackFor_ = {};
-
-      /**
-       *  Indicates when this object is actually ready to be used. Not true
-       *  until the metadata has been populated.
-       *
-       *  !!!!!!!!!!!!!!!!!!!           TODO      !!!!!!!!!!!!!!!!!!!!!!!!!!
-       *  Do we need to modify the old window.context to always
-       *  have this as true?? Or should we have something that says this is
-       *  is the new version? Right now, this will break the old one if
-       *  creatives start always checking this property, as it does not
-       *  exist on the old one.
-       *  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       */
-
+      this.setupMetadata_();
       // Do we want to pass sentinel via hash?  or name attribute?
-      const hashMatch = window.location.hash.match(/amp3pSentinel=((\d+)-\d+)/);
+      const hashMatch = this.sentinel.match(/((\d+)-\d+)/);
       if (hashMatch) {
         // Sentinel has the format of "$windowDepth-$randomNumber".
-        this.sentinel = hashMatch[1];
         // Depth is measured from window.top.
         this.depth = Number(hashMatch[2]);
         this.ancestors = [];
@@ -62,7 +50,7 @@ window.context = window.context || (function() {
         user().error('Hash does not match amp3pSentinel format');
       }
       this.setupEventListener_();
-      this.setupMetadata_();
+      //window.dispatchEvent(windowContextCreated);
     }
 
     /**
@@ -71,7 +59,7 @@ window.context = window.context || (function() {
      *  @private
      */
     setupMetadata_() {
-      const data = window.name;
+      const data = JSON.parse(window.name);
       const context = data._context;
       this.location = context.location;
       this.canonicalUrl = context.canonicalUrl;
@@ -80,7 +68,6 @@ window.context = window.context || (function() {
       this.sentinel = context.sentinel;
       this.startTime = context.startTime;
       this.referrer = context.referrer;
-      window.dispatchEvent(windowContextCreated);
     }
 
     /**
@@ -206,3 +193,6 @@ window.context = window.context || (function() {
 
   return new AmpContext();
 })();
+
+const windowContextCreated = new Event('windowContextCreated');
+window.dispatchEvent(windowContextCreated);
