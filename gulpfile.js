@@ -191,9 +191,9 @@ function compile(watch, shouldMinify, opt_preventRemoveAndMakeDir,
     includeBasicPolyfills: true,
   });
 
-  compileJs('./3p/', 'ampcontext-test.js',
+  compileJs('./3p/', 'ampcontext-lib.js',
       './dist.3p/' + (shouldMinify ? internalRuntimeVersion : 'current'), {
-    minifiedName: 'ampcontext-test.js',
+    minifiedName: 'ampcontext-lib.js',
     checkTypes: opt_checkTypes,
     watch: watch,
     minify: false,
