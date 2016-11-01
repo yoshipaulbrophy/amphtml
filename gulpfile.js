@@ -190,6 +190,17 @@ function compile(watch, shouldMinify, opt_preventRemoveAndMakeDir,
     includeBasicPolyfills: true,
   });
 
+  compileJs('./3p/', 'ampcontext-test.js',
+      './dist.3p/' + (shouldMinify ? internalRuntimeVersion : 'current'), {
+    minifiedName: 'ampcontext-test.js',
+    checkTypes: opt_checkTypes,
+    watch: watch,
+    minify: false,
+    preventRemoveAndMakeDir: opt_preventRemoveAndMakeDir,
+    externs: ['ads/ads.extern.js',],
+    includeBasicPolyfills: true,
+  });
+
   // For compilation with babel we start with the amp-babel entry point,
   // but then rename to the amp.js which we've been using all along.
   compileJs('./src/', 'amp-babel.js', './dist', {
