@@ -1,25 +1,3 @@
-<script id="testing">
-  let test = window.location.hash;
-  switch(test){
-  case "#sendMetadata":
-  sendMetadata();
-  break;
-  }
-  };
 
-  function sendMetadata(){
-  window.addEventListener("windowContextCreated", function(){
-  window.top.postMessage(JSON.stringify(
-  {
-  "location" : window.context.location,
-  "canonicalUrl" : window.context.canonicalUrl,
-  "clientId" : window.context.clientId,
-  "pageViewId" : window.context.pageViewId,
-  "sentinel" : window.context.sentinel,
-  "startTime" : window.context.startTime,
-  "referrer" : window.context.referrer,
-  }
-  ), "*");
-  };
-</script>
+<script src="../../../dist.3p/current/ampcontext-test.js"></script>
 <script src="../../../dist.3p/current/ampcontext.js"></script>
