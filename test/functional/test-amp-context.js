@@ -2,6 +2,7 @@ import {
   AmpContext,
   MessageType_,
 } from '../../3p/ampcontext';
+import {createIframePromise} from '../../testing/iframe';
 import * as sinon from 'sinon';
 
 describe('3p ampcontext.js', () => {
@@ -215,6 +216,21 @@ describe('3p ampcontext.js', () => {
     expect(deniedCallbackSpy.calledWith(messagePayload));
 
     expect(successCallbackSpy.called).to.be.false;
+  });
+
+  it('context should be available when creation event fired', () => {
+    // create an iframe that includes the ampcontext-lib script
+    return createIframePromise().then(iframe => {
+      iframe.win.name = JSON.stringify(generateAttributes('1-291921'));
+      iframe.win.addEventListener('windowContextCreated', () => {
+	console.log(iframe.win.context);
+      });
+      const windowContextScript = iframe.doc.createElement('script');
+      windowContextScript.src = '../../dist.3p/current/ampcontext-lib.js';
+
+      // need some sort of promise here to allow the script to load
+      iframe.doc.body.appendChild(windowContextScript);
+    });
   });
 
 });

@@ -34,11 +34,11 @@ export class AmpContext {
     this.callbackFor_ = {};
     this.setupMetadata_();
     // Do we want to pass sentinel via hash?  or name attribute?
-    const hashMatch = this.sentinel.match(/((\d+)-\d+)/);
-    if (hashMatch) {
+    const sentinelMatch = this.sentinel.match(/((\d+)-\d+)/);
+    if (sentinelMatch) {
       // Sentinel has the format of "$windowDepth-$randomNumber".
       // Depth is measured from window.top.
-      this.depth = Number(hashMatch[2]);
+      this.depth = Number(sentinelMatch[2]);
       this.ancestors = [];
       for (let win = this.win_; win && win != win.parent; win = win.parent) {
         // Add window keeping the top-most one at the front.
@@ -49,7 +49,6 @@ export class AmpContext {
       user().error('Hash does not match amp3pSentinel format');
     }
     this.setupEventListener_();
-    //window.dispatchEvent(windowContextCreated);
   }
 
   /**
