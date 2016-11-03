@@ -222,17 +222,34 @@ describe('3p ampcontext.js', () => {
     // create an iframe that includes the ampcontext-lib script
     return createIframePromise().then(iframe => {
       iframe.win.name = JSON.stringify(generateAttributes('1-291921'));
-      iframe.win.addEventListener('windowContextCreated', () => {
-	console.log(iframe.win.context);
+
+      const windowContextPromise = new Promise((resolve) => {
+	iframe.win.addEventListener('windowContextCreated', resolve);
       });
+
       const windowContextScript = iframe.doc.createElement('script');
       windowContextScript.src = '../../dist.3p/current/ampcontext-lib.js';
 
-      // need some sort of promise here to allow the script to load
+      const scriptPromise = new Promise((resolve, reject) => {
+	windowContextScript.addEventListener('error', () => {
+          reject(new Error('script error'));
+	});
+	windowContextScript.addEventListener('load', resolve);
+      });
+
       iframe.doc.body.appendChild(windowContextScript);
+      return scriptPromise.then(() => windowContextPromise).then(() => {
+	expect(iframe.win.context).to.be.ok;
+	expect(iframe.win.context.location).to.equal('foo.com');
+	expect(iframe.win.context.canonicalUrl).to.equal('foo.com');
+	expect(iframe.win.context.clientId).to.equal('123');
+	expect(iframe.win.context.pageViewId).to.equal('1');
+	expect(iframe.win.context.sentinel).to.equal('1-291921');
+	expect(iframe.win.context.startTime).to.equal('0');
+	expect(iframe.win.context.referrer).to.equal('baz.net');
+      });
     });
   });
-
 });
 
 function generateAttributes(sentinel) {
