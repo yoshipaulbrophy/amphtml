@@ -147,7 +147,7 @@ export class AmpA4A extends AMP.BaseElement {
     this.xOriginIframeHandler_ = null;
 
     /** @private {boolean} */
-    this.rendered_ = false;
+    this.isVerifiedAmpCreative_ = false;
 
     /** @private {boolean} whether layoutMeasure has been executed. */
     this.layoutMeasureExecuted_ = false;
@@ -160,9 +160,7 @@ export class AmpA4A extends AMP.BaseElement {
       this.win.ampA4aValidationKeys = this.getKeyInfoSets_();
     }
 
-    // TODO(tdrl): Temporary, while we're verifying whether this is an
-    // acceptable solution to the 'Safari on iOS doesn't fetch iframe src
-    // from cache' issue.  See https://github.com/ampproject/amphtml/issues/5614
+    // Creative which can be either AMP or non-AMP.
     /** @private {?ArrayBuffer} */
     this.creativeBody_ = null;
     /** @private {?string} */
@@ -195,10 +193,10 @@ export class AmpA4A extends AMP.BaseElement {
 
   /** @override */
   renderOutsideViewport() {
-    // Only relevant if non-AMP as AMP creative will be injected within
-    // buildCallback promise chain.
-    // If another ad is currently loading we only load ads that are currently
-    // in viewport.
+    if (this.isVerifiedAmpCreative_) {
+      return true;
+    }
+    // Enforce throttling of non-AMP verified ads.
     const allowRender = allowRenderOutsideViewport(this.element, this.win);
     if (allowRender !== true) {
       return allowRender;
@@ -369,16 +367,7 @@ export class AmpA4A extends AMP.BaseElement {
         /** @return {!Promise<?string>} */
         .then(creativeParts => {
           checkStillCurrent(promiseId);
-          // Keep a handle to the creative body so that we can render into
-          // SafeFrame later, if necessary.  TODO(tdrl): Temporary, while we
-          // assess whether this is the right solution to the Safari+iOS iframe
-          // src cache issue.  If we decide to keep a SafeFrame-like solution,
-          // we should restructure the promise chain to pass this info along
-          // more cleanly, without use of an object variable outside the chain.
-          if (this.experimentalNonAmpCreativeRenderMethod_ == 'safeframe' &&
-              creativeParts && creativeParts.creative) {
-            this.creativeBody_ = creativeParts.creative;
-          }
+          this.creativeBody_ = creativeParts ? null : creativeParts.creative;
           if (!creativeParts || !creativeParts.signature) {
             return /** @type {!Promise<?string>} */ (Promise.resolve(null));
           }
@@ -398,10 +387,13 @@ export class AmpA4A extends AMP.BaseElement {
         })
         // This block returns true iff the creative was rendered in the shadow
         // DOM.
-        /** @return {!Promise<!boolean>} */
+        /** @return {!Promise<?CreativeMetaDataDef>} */
         .then(creative => {
           checkStillCurrent(promiseId);
-          // Note: It's critical that #maybeRenderAmpAd_ be called
+          // Used to control renderOutsideViewport allowing layoutCallback
+          // to be called without throttling constraint.
+          this.isVerifiedAmpCreative_ = !!creative;
+          // Note: It's critical that #getAmpAdMetadata_ be called
           // on precisely the same creative that was validated
           // via #validateAdResponse_.  See GitHub issue
           // https://github.com/ampproject/amphtml/issues/4187
@@ -409,7 +401,7 @@ export class AmpA4A extends AMP.BaseElement {
           // TODO(levitzky) If creative comes back null, we should consider re-
           // fetching the signing server public keys and try the verification
           // step again.
-          return creative && this.maybeRenderAmpAd_(creative);
+          return creative && this.getAmpAdMetadata_(creative);
         })
         .catch(error => this.promiseErrorHandler_(error));
   }
