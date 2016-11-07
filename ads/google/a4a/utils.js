@@ -50,13 +50,12 @@ const AmpAdImplementation = {
 export function isGoogleAdsA4AValidEnvironment(win, element) {
   const supportsNativeCrypto = win.crypto &&
       (win.crypto.subtle || win.crypto.webkitSubtle);
-  const multiSizeRequest = element.dataset && element.dataset.multiSize;
   // Note: Theoretically, isProxyOrigin is the right way to do this, b/c it
   // will be kept up to date with known proxies.  However, it doesn't seem to
   // be compatible with loading the example files from localhost.  To hack
   // around that, just say that we're A4A eligible if we're in local dev
   // mode, regardless of origin path.
-  return supportsNativeCrypto && !multiSizeRequest &&
+  return supportsNativeCrypto &&
       (isProxyOrigin(win.location) || getMode().localDev || getMode().test);
 }
 
@@ -128,6 +127,11 @@ function buildAdUrl(
   const viewportRect = a4a.getViewport().getRect();
   const iframeDepth = iframeNestingDepth(global);
   const dtdParam = {name: 'dtd'};
+  let multiSizeJson = '';
+  const multiSizeStr = a4a.element.getAttribute('data-multi-size');
+  if (multiSizeStr) {
+    multiSizeJson = '#' + JSON.stringify({multiSize: multiSizeStr});
+  }
   const allQueryParams = queryParams.concat(
     [
       {
@@ -155,7 +159,7 @@ function buildAdUrl(
       {
         name: 'loc',
         value: global.location.href == documentInfo.canonicalUrl ?
-            null : global.location.href,
+            null : global.location.href + multiSizeJson,
       },
       {name: 'ref', value: referrer},
     ]

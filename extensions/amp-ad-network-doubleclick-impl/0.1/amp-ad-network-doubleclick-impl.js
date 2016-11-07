@@ -30,6 +30,7 @@ import {
   isGoogleAdsA4AValidEnvironment,
   getCorrelator,
 } from '../../../ads/google/a4a/utils';
+import {getMultiSizeDimensions} from '../../../ads/google/utils';
 import {getLifecycleReporter} from '../../../ads/google/a4a/performance';
 
 /** @const {string} */
@@ -71,6 +72,29 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     const jsonParameters = rawJson ? JSON.parse(rawJson) : {};
     const tfcd = jsonParameters['tfcd'];
     const adTestOn = isInManualExperiment(this.element);
+
+    const multiSizeDataStr = this.element.getAttribute('data-multi-size');
+    if (multiSizeDataStr) {
+      const multiSizeValidation = this.element
+          .getAttribute('data-multi-size-validation');
+      // The following call will check all specified multi-size dimensions,
+      // verify that they meet all requirements, and then return all the valid
+      // dimensions in an array.
+      const dimensions = getMultiSizeDimensions(
+          multiSizeDataStr /* Raw multi-size data attribute */,
+          this.element.getAttribute('width') /* Primary width */,
+          this.element.getAttribute('height') /* Primary height */,
+          multiSizeValidation /* Raw multi-size-validation data attribute */);
+      let multiSize = '';
+      for (const i in dimensions) {
+        multiSize += (multiSize ? ',' : '') +
+            dimensions[i][0] + 'x' + dimensions[i][1];
+      }
+      // Override current multi-size data attribute with only those values that
+      // are valid.
+      this.element.setAttribute('data-multi-size', multiSize);
+    }
+
     return googleAdUrl(this, DOUBLECLICK_BASE_URL, startTime, slotIdNumber, [
       {name: 'iu', value: this.element.getAttribute('data-slot')},
       {name: 'co', value: jsonParameters['cookieOptOut'] ? '1' : null},
@@ -78,13 +102,12 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
       {name: 'd_imp', value: '1'},
       {name: 'impl', value: 'ifr'},
       {name: 'sfv', value: 'A'},
-      {name: 'sz', value: `${slotRect.width}x${slotRect.height}`},
+      {name: 'sz', value: slotRect.width + 'x' + slotRect.height},
       {name: 'tfcd', value: tfcd == undefined ? null : tfcd},
       {name: 'u_sd', value: global.devicePixelRatio},
       {name: 'adtest', value: adTestOn},
       {name: 'ifi', value: slotIdNumber},
       {name: 'c', value: correlator},
-
     ], [
       {
         name: 'scp',
