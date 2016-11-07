@@ -169,17 +169,6 @@ function compile(watch, shouldMinify, opt_preventRemoveAndMakeDir,
     includePolyfills: true,
   });
 
-  compileJs('./ads/google/a4a/', 'ampcontext.js',
-      './dist.3p/' + (shouldMinify ? internalRuntimeVersion : 'current'), {
-    minifiedName: 'ampcontext.js',
-    checkTypes: opt_checkTypes,
-    watch: watch,
-    minify: false,
-    preventRemoveAndMakeDir: opt_preventRemoveAndMakeDir,
-    externs: ['ads/ads.extern.js',],
-    includeBasicPolyfills: true,
-  });
-
   compileJs('./3p/', 'ampcontext.js',
       './dist.3p/' + (shouldMinify ? internalRuntimeVersion : 'current'), {
     minifiedName: 'ampcontext.js',
