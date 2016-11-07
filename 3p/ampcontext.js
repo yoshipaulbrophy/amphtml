@@ -57,7 +57,7 @@ export class AmpContext {
    *  @private
    */
   setupMetadata_() {
-    const data = JSON.parse(this.win_.name);
+    const data = JSON.parse(decodeURI(this.win_.name));
     const context = data._context;
     this.location = context.location;
     this.canonicalUrl = context.canonicalUrl;

@@ -33,7 +33,7 @@ describe('3p ampcontext.js', () => {
   });
 
   it('should add metadata to window.context', () => {
-    win.name = JSON.stringify(generateAttributes('1-291921'));
+    win.name = generateAttributes();
     const context = new AmpContext(win);
     expect(context).to.be.ok;
     expect(context.location).to.equal('foo.com');
@@ -46,7 +46,7 @@ describe('3p ampcontext.js', () => {
   });
 
   it('should be able to send an intersection observer request', () => {
-    win.name = JSON.stringify(generateAttributes('1-291921'));
+    win.name = generateAttributes();
     const context = new AmpContext(win);
     const callbackSpy = sinon.spy();
     const stopObserving = context.observeIntersection(callbackSpy);
@@ -95,7 +95,7 @@ describe('3p ampcontext.js', () => {
       Check that postMessage was called with correct parameters
       Check that registerCallback was called with correct parameters
     */
-    win.name = JSON.stringify(generateAttributes('1-291921'));
+    win.name = generateAttributes();
     const context = new AmpContext(win);
     const callbackSpy = sinon.spy();
     const stopObserving = context.observePageVisibility(callbackSpy);
@@ -136,7 +136,7 @@ describe('3p ampcontext.js', () => {
   });
 
   it('should call resize success callback on resize success', () => {
-    win.name = JSON.stringify(generateAttributes('1-291921'));
+    win.name = generateAttributes();
     const context = new AmpContext(win);
     const successCallbackSpy = sinon.spy();
     const deniedCallbackSpy = sinon.spy();
@@ -178,7 +178,7 @@ describe('3p ampcontext.js', () => {
   });
 
   it('should call resize denied callback on resize denied', () => {
-    win.name = JSON.stringify(generateAttributes('1-291921'));
+    win.name = generateAttributes();
     const context = new AmpContext(win);
     const successCallbackSpy = sinon.spy();
     const deniedCallbackSpy = sinon.spy();
@@ -221,7 +221,7 @@ describe('3p ampcontext.js', () => {
   it('context should be available when creation event fired', () => {
     // create an iframe that includes the ampcontext-lib script
     return createIframePromise().then(iframe => {
-      iframe.win.name = JSON.stringify(generateAttributes('1-291921'));
+      iframe.win.name = generateAttributes();
 
       const windowContextPromise = new Promise((resolve) => {
 	iframe.win.addEventListener('windowContextCreated', resolve);
@@ -259,10 +259,10 @@ function generateAttributes(sentinel) {
     canonicalUrl: 'foo.com',
     clientId: '123',
     pageViewId: '1',
-    sentinel,
+    sentinel:'1-291921',
     startTime: '0',
     referrer: 'baz.net',
   };
 
-  return attributes;
+  return encodeURI(JSON.stringify(attributes));
 }
