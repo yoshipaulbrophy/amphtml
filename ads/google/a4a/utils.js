@@ -142,7 +142,7 @@ function buildAdUrl(
       {name: 'dt', value: startTime},
       {name: 'adk', value: adKey(slotNumber, slotRect, viewportRect)},
       {name: 'c', value: makeCorrelator(clientId, documentInfo.pageViewId)},
-      {name: 'output', value: 'html'},
+      {name: 'output', value: 'json_html'},
       {name: 'nhd', value: iframeDepth},
       {name: 'eid', value: a4a.element.getAttribute('data-experiment-id')},
       {name: 'bih', value: viewportRect.height},
