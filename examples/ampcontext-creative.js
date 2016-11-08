@@ -1,4 +1,4 @@
-window.name = "%7B%22_context%22:%7B%22location%22:%22foo.com%22,%22canonicalUrl%22:%22foo.com%22,%22clientId%22:%22123%22,%22pageViewId%22:%221%22,%22sentinel%22:%220-291921%22,%22startTime%22:%220%22,%22referrer%22:%22baz.net%22%7D%7D";
+//window.name = "%7B%22_context%22:%7B%22location%22:%22foo.com%22,%22canonicalUrl%22:%22foo.com%22,%22clientId%22:%22123%22,%22pageViewId%22:%221%22,%22sentinel%22:%220-291921%22,%22startTime%22:%220%22,%22referrer%22:%22baz.net%22%7D%7D";
 function intersectionCallback(payload){
   changes = payload.changes;
   // Step 4: Do something with the intersection updates!

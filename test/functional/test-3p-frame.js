@@ -153,34 +153,11 @@ describe('3p-frame', () => {
     expect(locationHref).to.not.be.empty;
     const docInfo = documentInfoForDoc(window.document);
     expect(docInfo.pageViewId).to.not.be.empty;
-    const amp3pSentinel = iframe.getAttribute('data-amp-3p-sentinel');
-    const fragment =
-        '{"testAttr":"value","ping":"pong","width":50,"height":100,' +
-        '"type":"_ping_"' +
-        ',"_context":{"referrer":"http://acme.org/",' +
-        '"canonicalUrl":"https://foo.bar/baz",' +
-        '"pageViewId":"' + docInfo.pageViewId + '","clientId":"cidValue",' +
-        '"location":{"href":"' + locationHref + '"},"tagName":"MY-ELEMENT",' +
-        '"mode":{"localDev":true,"development":false,"minified":false,' +
-        '"test":false,"version":"$internalRuntimeVersion$"}' +
-        ',"canary":true' +
-        ',"hidden":false' +
-        ',"startTime":1234567888' +
-        ',"amp3pSentinel":"' + amp3pSentinel + '"' +
-        ',"initialIntersection":{"time":1234567888,' +
-        '"rootBounds":{"left":0,"top":0,"width":' + width + ',"height":' +
-        height + ',"bottom":' + height + ',"right":' + width +
-        ',"x":0,"y":0},"boundingClientRect":' +
-        '{"width":100,"height":200},"intersectionRect":{' +
-        '"left":0,"top":0,"width":0,"height":0,"bottom":0,' +
-        '"right":0,"x":0,"y":0}}}}';
-    const srcParts = src.split('#');
-    expect(srcParts[0]).to.equal(
+    expect(src).to.equal(
         'http://ads.localhost:9876/dist.3p/current/frame.max.html');
-    expect(JSON.parse(srcParts[1])).to.deep.equal(JSON.parse(fragment));
 
     // Switch to same origin for inner tests.
-    iframe.src = '/dist.3p/current/frame.max.html#' + fragment;
+    iframe.src = '/dist.3p/current/frame.max.html';
 
     document.body.appendChild(iframe);
     return loadPromise(iframe).then(() => {

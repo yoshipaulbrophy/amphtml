@@ -42,8 +42,8 @@ export class AmpAdNetworkFakeImpl extends AmpA4A {
 
   /** @override */
   getAdUrl() {
-    return '/extensions/amp-ad-network-fake-impl/0.1/data/' +
-        this.element.getAttribute('src');
+   /* return '/extensions/amp-ad-network-fake-impl/0.1/data/' + */
+    return this.element.getAttribute('src');
   }
 
   /** @override */

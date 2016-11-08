@@ -48,6 +48,9 @@ export class AmpAdXOriginIframeHandler {
     /** {?Element} iframe instance */
     this.iframe = null;
 
+    /** {?Element} iframe sentinel */
+    this.sentinel = null;
+
     /** @private {?IntersectionObserver} */
     this.intersectionObserver_ = null;
 
@@ -71,36 +74,38 @@ export class AmpAdXOriginIframeHandler {
    * @return {!Promise} awaiting render complete promise
    * @suppress {checkTypes}  // TODO(tdrl): Temporary, for lifecycleReporter.
    */
-  init(iframe, opt_isA4A) {
+  init(iframe, sentinel, opt_isA4A) {
     dev().assert(
         !this.iframe, 'multiple invocations of init without destroy!');
     this.iframe = iframe;
+    this.sentinel = sentinel;
     this.iframe.setAttribute('scrolling', 'no');
     this.baseInstance_.applyFillContent(this.iframe);
     this.intersectionObserver_ = new IntersectionObserver(
-        this.baseInstance_, this.iframe, true);
+        this.baseInstance_, this.iframe, this.sentinel, true);
     this.embedStateApi_ = new SubscriptionApi(
-        this.iframe, 'send-embed-state', true,
+        this.iframe, this.sentinel, 'send-embed-state', true,
         () => this.sendEmbedInfo_(this.baseInstance_.isInViewport()));
     // Triggered by context.reportRenderedEntityIdentifier(…) inside the ad
     // iframe.
-    listenForOncePromise(this.iframe, 'entity-id', true)
+    listenForOncePromise(this.iframe, this.sentinel, 'entity-id', true)
         .then(info => {
           this.element_.creativeId = info.data.id;
         });
 
     // Listen for metadata request postMessage from inside ad iframe.
-    listenFor(this.iframe_, 'send-embed-context',
+    listenFor(this.iframe, this.sentinel, 'send-embed-context',
               (data, source, origin) => {
-                this.sendEmbedContext_(source, origin, this.iframe_._context);
+                this.sendEmbedContext_(source, origin, this.iframe._context);
               },
-        this.is3p_, this.is3p_);
+              this.is3p_, this.is3p_);
 
     // Install iframe resize API.
-    this.unlisteners_.push(listenFor(this.iframe, 'embed-size',
-        (data, source, origin) => {
-          this.updateSize_(data.height, data.width, source, origin);
-        }, true, true));
+    this.unlisteners_.push(listenFor(this.iframe, this.sentinel, 'embed-size',
+                                     (data, source, origin) => {
+                                       this.updateSize_(data.height, data.width,
+                                                        source, origin);
+                                     }, true, true));
 
     this.unlisteners_.push(this.viewer_.onVisibilityChanged(() => {
       this.sendEmbedInfo_(this.baseInstance_.isInViewport());
@@ -117,21 +122,23 @@ export class AmpAdXOriginIframeHandler {
     if (this.baseInstance_.config
         && this.baseInstance_.config.renderStartImplemented) {
       // If support render-start, create a race between render-start no-content
-      this.adResponsePromise_ = listenForOncePromise(this.iframe,
-        ['render-start', 'no-content'], true).then(info => {
-          const data = info.data;
-          if (data.type == 'render-start') {
-            this.renderStart_(info);
-          } else {
-            this.noContent_();
-          }
-        });
+      this.adResponsePromise_ =
+          listenForOncePromise(this.iframe, this.sentinel,
+                               ['render-start', 'no-content'], true)
+                                   .then(info => {
+                                     const data = info.data;
+                                     if (data.type == 'render-start') {
+                                       this.renderStart_(info);
+                                     } else {
+                                       this.noContent_();
+                                     }
+                                   });
     } else {
       // If NOT support render-start, listen to bootstrap-loaded no-content
       // respectively
-      this.adResponsePromise_ = listenForOncePromise(this.iframe,
-        'bootstrap-loaded', true);
-      listenForOncePromise(this.iframe, 'no-content', true)
+      this.adResponsePromise_ = listenForOncePromise(this.iframe, this.sentinel,
+                                                     'bootstrap-loaded', true);
+      listenForOncePromise(this.iframe, this.sentinel, 'no-content', true)
           .then(() => this.noContent_());
     }
 
@@ -140,16 +147,17 @@ export class AmpAdXOriginIframeHandler {
     this.iframe.style.visibility = 'hidden';
 
     this.element_.appendChild(this.iframe);
-    return timerFor(this.baseInstance_.win).timeoutPromise(TIMEOUT_VALUE,
-        this.adResponsePromise_,
-        'timeout waiting for ad response').catch(e => {
-          this.noContent_();
-          user().warn('AMP-AD', e);
-        }).then(() => {
-          if (this.iframe) {
-            this.iframe.style.visibility = '';
-          }
-        });
+    return timerFor(this.baseInstance_.win)
+        .timeoutPromise(TIMEOUT_VALUE,
+                        this.adResponsePromise_,
+                        'timeout waiting for ad response').catch(e => {
+                          this.noContent_();
+                          user().warn('AMP-AD', e);
+                        }).then(() => {
+                          if (this.iframe) {
+                            this.iframe.style.visibility = '';
+                          }
+                        });
   }
 
   /**
@@ -161,7 +169,7 @@ export class AmpAdXOriginIframeHandler {
     const data = info.data;
     this.uiHandler_.setDisplayState(AdDisplayState.LOADED_RENDER_START);
     this.updateSize_(data.height, data.width,
-                info.source, info.origin);
+                     info.source, info.origin);
     if (this.baseInstance_.lifecycleReporter) {
       this.baseInstance_.lifecycleReporter.sendPing(
           'renderCrossDomainStart');
@@ -243,7 +251,7 @@ export class AmpAdXOriginIframeHandler {
     if (newHeight !== undefined || newWidth !== undefined) {
       this.baseInstance_.attemptChangeSize(newHeight, newWidth).then(() => {
         this.sendEmbedSizeResponse_(
-          true /* success */, newWidth, newHeight, source, origin);
+            true /* success */, newWidth, newHeight, source, origin);
       }, () => this.sendEmbedSizeResponse_(
           false /* success */, newWidth, newHeight, source, origin));
     }
@@ -259,13 +267,14 @@ export class AmpAdXOriginIframeHandler {
    * @private
    */
   sendEmbedSizeResponse_(success, requestedWidth, requestedHeight, source,
-      origin) {
+                         origin) {
     // The iframe may have been removed by the time we resize.
     if (!this.iframe) {
       return;
     }
     postMessageToWindows(
         this.iframe,
+        this.sentinel,
         [{win: source, origin}],
         success ? 'embed-size-changed' : 'embed-size-denied',
         {requestedWidth, requestedHeight},
@@ -297,14 +306,15 @@ export class AmpAdXOriginIframeHandler {
     // context object. This is to ensure that we don't inadvertently expose
     // more API surface than we intend to and end up with somebody depending
     // on it.
-    postMessageToWindows(this.iframe_, [{win, origin}], 'embed-context', {
-      location: context.location,
-      referrer: context.referrer,
-      canonicalUrl: context.canonicalUrl,
-      pageViewId: context.pageViewId,
-      clientId: context.clientId,
-      startTime: context.startTime,
-    }, this.is3p_);
+    postMessageToWindows(this.iframe, this.sentinel, [{win, origin}],
+                         'embed-context', {
+                           location: context.location,
+                           referrer: context.referrer,
+                           canonicalUrl: context.canonicalUrl,
+                           pageViewId: context.pageViewId,
+                           clientId: context.clientId,
+                           startTime: context.startTime,
+                         }, this.is3p_);
   }
 
   /** @override  */

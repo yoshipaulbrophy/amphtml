@@ -223,43 +223,43 @@ describe('3p ampcontext.js', () => {
     return createIframePromise().then(iframe => {
       iframe.win.name = generateAttributes();
 
-      const windowContextPromise = new Promise((resolve) => {
-	iframe.win.addEventListener('windowContextCreated', resolve);
+      const windowContextPromise = new Promise(resolve => {
+        iframe.win.addEventListener('windowContextCreated', resolve);
       });
 
       const windowContextScript = iframe.doc.createElement('script');
       windowContextScript.src = '../../dist.3p/current/ampcontext-lib.js';
 
       const scriptPromise = new Promise((resolve, reject) => {
-	windowContextScript.addEventListener('error', () => {
+        windowContextScript.addEventListener('error', () => {
           reject(new Error('script error'));
-	});
-	windowContextScript.addEventListener('load', resolve);
+        });
+        windowContextScript.addEventListener('load', resolve);
       });
 
       iframe.doc.body.appendChild(windowContextScript);
       return scriptPromise.then(() => windowContextPromise).then(() => {
-	expect(iframe.win.context).to.be.ok;
-	expect(iframe.win.context.location).to.equal('foo.com');
-	expect(iframe.win.context.canonicalUrl).to.equal('foo.com');
-	expect(iframe.win.context.clientId).to.equal('123');
-	expect(iframe.win.context.pageViewId).to.equal('1');
-	expect(iframe.win.context.sentinel).to.equal('1-291921');
-	expect(iframe.win.context.startTime).to.equal('0');
-	expect(iframe.win.context.referrer).to.equal('baz.net');
+        expect(iframe.win.context).to.be.ok;
+        expect(iframe.win.context.location).to.equal('foo.com');
+        expect(iframe.win.context.canonicalUrl).to.equal('foo.com');
+        expect(iframe.win.context.clientId).to.equal('123');
+        expect(iframe.win.context.pageViewId).to.equal('1');
+        expect(iframe.win.context.sentinel).to.equal('1-291921');
+        expect(iframe.win.context.startTime).to.equal('0');
+        expect(iframe.win.context.referrer).to.equal('baz.net');
       });
     });
   });
 });
 
-function generateAttributes(sentinel) {
+function generateAttributes() {
   const attributes = {};
   attributes._context = {
     location: 'foo.com',
     canonicalUrl: 'foo.com',
     clientId: '123',
     pageViewId: '1',
-    sentinel:'1-291921',
+    sentinel: '1-291921',
     startTime: '0',
     referrer: 'baz.net',
   };

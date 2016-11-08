@@ -116,6 +116,8 @@ export function getIframe(parentWindow, parentElement, opt_type, opt_context) {
   const host = parseUrl(baseUrl).hostname;
   // Pass ad attributes to iframe via the fragment.
   const src = baseUrl;
+  // TODO (bradfrizzell): change this to make a JSON object rather than a
+  // string delimited with the arbitrary delimiter <wc>
   const name = host + '_' + attributes.type + '_' + count[attributes.type]++ +
       '_<wc>' + JSON.stringify(attributes) + '<wc>';
 
@@ -131,9 +133,6 @@ export function getIframe(parentWindow, parentElement, opt_type, opt_context) {
     // Chrome does not reflect the iframe readystate.
     this.readyState = 'complete';
   };
-  iframe.setAttribute(
-      'data-amp-3p-sentinel', attributes._context.amp3pSentinel);
-  iframe._context = attributes._context;
   return iframe;
 }
 

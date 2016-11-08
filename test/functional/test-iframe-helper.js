@@ -16,7 +16,6 @@
 import * as IframeHelper from '../../src/iframe-helper';
 import * as sinon from 'sinon';
 import {createIframePromise} from '../../testing/iframe';
-import {generateSentinel} from '../../src/3p-frame.js';
 
 describe('iframe-helper', function() {
   const iframeSrc = 'http://iframe.localhost:' + location.port +
@@ -88,9 +87,8 @@ describe('iframe-helper', function() {
     let unlisten;
     let calls = 0;
     return new Promise(resolve => {
-      const sentinel = generateSentinel(testIframe.ownerDocument.defaultView);
-      testIframe.src = iframeSrc + '#amp-3p-sentinel=' + sentinel;
-      testIframe.setAttribute('data-amp-3p-sentinel', sentinel);
+
+      testIframe.src = iframeSrc;
       unlisten = IframeHelper.listenFor(testIframe, 'send-intersections',
           () => {
             calls++;
@@ -112,11 +110,9 @@ describe('iframe-helper', function() {
     let unlisten;
     let calls = 0;
     return new Promise(resolve => {
-      const sentinel = generateSentinel(testIframe.ownerDocument.defaultView);
       // Note that we're using a different document here which will load the
       // usual iframe-intersection.html within a nested iframe.
-      testIframe.src = nestedIframeSrc + '#amp-3p-sentinel=' + sentinel;
-      testIframe.setAttribute('data-amp-3p-sentinel', sentinel);
+      testIframe.src = nestedIframeSrc;
       unlisten = IframeHelper.listenFor(testIframe, 'send-intersections',
           () => {
             calls++;

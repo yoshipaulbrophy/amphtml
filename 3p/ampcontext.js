@@ -2,7 +2,7 @@ import './polyfills';
 import {listen} from '../src/event-helper';
 import {user} from '../src/log';
 
-console.log("AMPCONTEXT.JS");
+console.log('AMPCONTEXT.JS');
 
 /**
  *  If window.context does not exist, we must instantiate a replacement and
