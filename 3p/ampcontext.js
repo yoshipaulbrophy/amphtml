@@ -2,8 +2,6 @@ import './polyfills';
 import {listen} from '../src/event-helper';
 import {user} from '../src/log';
 
-console.log('AMPCONTEXT.JS');
-
 /**
  *  If window.context does not exist, we must instantiate a replacement and
  *  assign it to window.context, to provide the creative with all the required
