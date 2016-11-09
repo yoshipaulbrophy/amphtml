@@ -1,5 +1,6 @@
 import {getPageViewId} from './service/document-info-impl';
 import {getLengthNumeral} from '../src/layout';
+import {getMode} from './mode';
 
 /**
  * Produces the attributes for the ad template.
@@ -21,6 +22,7 @@ export function getContextMetadata(parentWindow, element, sentinel) {
 
   attributes._context = {
     referrer: self.document.referrer,
+    // what if this fails?
     canonicalUrl: self.document.querySelector('link[rel="canonical"]').href,
     pageViewId: getPageViewId(parentWindow),
     location: {
@@ -29,6 +31,9 @@ export function getContextMetadata(parentWindow, element, sentinel) {
     sentinel,
     startTime,
   };
+
+  attributes.ampcontextVersion = (getMode().localDev ? "LOCAL" : 1);
+
   const adSrc = element.getAttribute('src');
   if (adSrc) {
     attributes.src = adSrc;

@@ -19,7 +19,8 @@ import {
 } from '../../amp-ad/0.1/concurrent-load';
 import {adConfig} from '../../../ads/_config';
 import {signingServerURLs} from '../../../ads/_a4a-config';
-import {getContextMetadata} from '../../../src/attributes.js';
+import {generateSentinel} from '../../../src/3p-frame';
+import {getContextMetadata} from '../../../src/attributes';
 import {
   closestByTag,
   removeChildren,
@@ -821,7 +822,7 @@ export class AmpA4A extends AMP.BaseElement {
           // modified url.
           'src': xhrFor(this.win).getCorsUrl(this.win, adUrl),
         }, SHARED_IFRAME_PROPERTIES));
-    const sentinel = '0-21921';
+    const sentinel = generateSentinel(window);
     const metadata = getContextMetadata(window, iframe, sentinel);
     iframe.setAttribute('name', encodeURI(JSON.stringify(metadata)));
     return this.iframeRenderHelper_(iframe, sentinel);
