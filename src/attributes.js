@@ -32,7 +32,8 @@ export function getContextMetadata(parentWindow, element, sentinel) {
     startTime,
   };
 
-  attributes.ampcontextVersion = (getMode().localDev ? "LOCAL" : 1);
+  attributes.ampcontextVersion = (getMode().localDev ? "LOCAL" :
+      $internalRuntimeVersion$ );
 
   const adSrc = element.getAttribute('src');
   if (adSrc) {
