@@ -63,7 +63,6 @@ export class AmpContext {
       const context = data._context;
       this.location = context.location;
       this.canonicalUrl = context.canonicalUrl;
-      this.clientId = context.clientId;
       this.pageViewId = context.pageViewId;
       this.sentinel = context.sentinel;
       this.startTime = context.startTime;
