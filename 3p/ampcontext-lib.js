@@ -6,7 +6,10 @@ import {AmpContext} from './ampcontext.js';
  *  assign it to window.context, to provide the creative with all the required
  *  functionality.
  */
-window.context = window.context || new AmpContext(window);
-
-const windowContextCreated = new Event('windowContextCreated');
-window.dispatchEvent(windowContextCreated);
+try{
+  window.context = window.context || new AmpContext(window);
+  const windowContextCreated = new Event('windowContextCreated');
+  window.dispatchEvent(windowContextCreated);
+} catch (err) {
+  window.context = undefined;
+}

@@ -30,7 +30,9 @@ export class AmpContext {
      *  @private {object}
      */
     this.callbackFor_ = {};
+
     this.setupMetadata_();
+
     // Do we want to pass sentinel via hash?  or name attribute?
     const sentinelMatch = this.sentinel.match(/((\d+)-\d+)/);
     if (sentinelMatch) {
@@ -43,10 +45,11 @@ export class AmpContext {
         this.ancestors.unshift(win.parent);
       }
       this.ampWindow = this.ancestors[this.depth];
+      this.setupEventListener_();
     } else {
-      user().error('Hash does not match amp3pSentinel format');
+      user().error('Incorrect sentinel format.');
+      throw "Incorrect sentinel format.";
     }
-    this.setupEventListener_();
   }
 
   /**
@@ -55,15 +58,20 @@ export class AmpContext {
    *  @private
    */
   setupMetadata_() {
-    const data = JSON.parse(decodeURI(this.win_.name));
-    const context = data._context;
-    this.location = context.location;
-    this.canonicalUrl = context.canonicalUrl;
-    this.clientId = context.clientId;
-    this.pageViewId = context.pageViewId;
-    this.sentinel = context.sentinel;
-    this.startTime = context.startTime;
-    this.referrer = context.referrer;
+    try{
+      const data = JSON.parse(decodeURI(this.win_.name));
+      const context = data._context;
+      this.location = context.location;
+      this.canonicalUrl = context.canonicalUrl;
+      this.clientId = context.clientId;
+      this.pageViewId = context.pageViewId;
+      this.sentinel = context.sentinel;
+      this.startTime = context.startTime;
+      this.referrer = context.referrer;
+    } catch(err){
+      user().error("Could not parse metadata.");
+      throw "Could not parse metadata.";
+    }
   }
 
   /**

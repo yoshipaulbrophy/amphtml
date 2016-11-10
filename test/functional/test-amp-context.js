@@ -45,6 +45,28 @@ describe('3p ampcontext.js', () => {
     expect(context.referrer).to.equal('baz.net');
   });
 
+  it ('should throw error if sentinel invalid', () => {
+    win.name = generateAttributes('foobar');
+    const AmpContextSpy = sinon.spy(AmpContext);
+    try{
+      new AmpContextSpy(win);
+    } catch (err) {
+      // do nothing with it
+    }
+    expect(AmpContextSpy.threw("Incorrect sentinel format.")).to.be.true;
+  });
+
+  it ('should throw error if metadata missing', () => {
+    win.name = generateIncorrectAttributes();
+    const AmpContextSpy = sinon.spy(AmpContext);
+    try{
+      new AmpContextSpy(win);
+    } catch (err) {
+      // do nothing with it
+    }
+    expect(AmpContextSpy.threw("Could not parse metadata.")).to.be.true;
+  });
+
   it('should be able to send an intersection observer request', () => {
     win.name = generateAttributes();
     const context = new AmpContext(win);
@@ -87,14 +109,6 @@ describe('3p ampcontext.js', () => {
   });
 
   it('should send a pM and set callback when observePageVisibility()', () => {
-    /*
-      Create window.context using ampcontext
-      Mock postMessage on ampWindow
-      Mock registerCallback
-      Call observePageVisibility
-      Check that postMessage was called with correct parameters
-      Check that registerCallback was called with correct parameters
-    */
     win.name = generateAttributes();
     const context = new AmpContext(win);
     const callbackSpy = sinon.spy();
@@ -250,11 +264,29 @@ describe('3p ampcontext.js', () => {
       });
     });
   });
+
 });
 
-function generateAttributes() {
+function generateAttributes(opt_sentinel) {
   const attributes = {};
+  const sentinel = opt_sentinel || '1-291921';
   attributes._context = {
+    location: 'foo.com',
+    canonicalUrl: 'foo.com',
+    clientId: '123',
+    pageViewId: '1',
+    sentinel: sentinel,
+    startTime: '0',
+    referrer: 'baz.net',
+  };
+
+  return encodeURI(JSON.stringify(attributes));
+}
+
+
+function generateIncorrectAttributes() {
+  const attributes = {};
+  attributes.wrong = {
     location: 'foo.com',
     canonicalUrl: 'foo.com',
     clientId: '123',

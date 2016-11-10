@@ -20,10 +20,17 @@ export function getContextMetadata(parentWindow, element, sentinel) {
   attributes.height = getLengthNumeral(height);
   const locationHref = parentWindow.location.href;
 
+  let canonicalUrl;
+  try{
+    canonicalUrl = self.document.querySelector(
+        'link[rel="canonical"]').href;
+  } catch(err){
+    console.log("Could not get canonicalUrl");
+  }
+
   attributes._context = {
     referrer: self.document.referrer,
-    // what if this fails?
-    canonicalUrl: self.document.querySelector('link[rel="canonical"]').href,
+    canonicalUrl,
     pageViewId: getPageViewId(parentWindow),
     location: {
       href: locationHref,
