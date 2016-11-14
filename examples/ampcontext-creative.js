@@ -1,13 +1,28 @@
-const version = JSON.parse(decodeURI(window.name)).ampcontextVersion;
-if (version != "LOCAL"){
-  ampContextScript = document.createElement('script');
-  ampContextScript.src = "foo.bar/"+version+"/ampcontext.js";
-  document.head.appendChild(ampContextScript);
-} else {
-  ampContextScript = document.createElement('script');
-  ampContextScript.src = "../dist.3p/current/ampcontext-lib.js";
-  document.head.appendChild(ampContextScript);
+if (!window.context){
+  // window.context doesn't exist yet, must perform steps to create it
+  // before using it
+  console.log("window.context NOT READY");
+
+  // must add listener for the creation of window.context
+  window.addEventListener('windowContextCreated', function(){
+    console.log("window.context created and ready to use");
+    window.context.onResizeSuccess(resizeSuccessCallback);
+    window.context.onResizeDenied(resizeDeniedCallback);
+  });
+
+  // load ampcontext-lib.js which will create window.context
+  const version = JSON.parse(decodeURI(window.name)).ampcontextVersion;
+  if (version != "LOCAL"){
+    ampContextScript = document.createElement('script');
+    ampContextScript.src = "foo.bar/"+version+"/ampcontext.js";
+    document.head.appendChild(ampContextScript);
+  } else {
+    ampContextScript = document.createElement('script');
+    ampContextScript.src = "../dist.3p/current/ampcontext-lib.js";
+    document.head.appendChild(ampContextScript);
+  }
 }
+
 function intersectionCallback(payload){
   changes = payload.changes;
   // Step 4: Do something with the intersection updates!
@@ -41,15 +56,6 @@ var shouldStopVis = false;
 var stopVisFunc;
 var shouldStopInt = false;
 var stopIntFunc;
-
-if (!window.context || !window.context.isReady){
-  console.log("window.context NOT READY");
-  window.addEventListener('windowContextCreated', function(){
-    console.log("window.context READY");
-    window.context.onResizeSuccess(resizeSuccessCallback);
-    window.context.onResizeDenied(resizeDeniedCallback);
-  });
-}
 
 function resizeSuccessCallback(requestedHeight, requestedWidth){
   console.log("Success!");

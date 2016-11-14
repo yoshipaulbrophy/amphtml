@@ -3,10 +3,9 @@ import {listen} from '../src/event-helper';
 import {user} from '../src/log';
 
 /**
- *  If window.context does not exist, we must instantiate a replacement and
- *  assign it to window.context, to provide the creative with all the required
- *  functionality.
- */
+  Enum for the different postmessage types for the window.context
+  postmess api.
+*/
 export const MessageType_ = {
   SEND_EMBED_STATE: 'send-embed-state',
   EMBED_STATE: 'embed-state',
@@ -18,8 +17,6 @@ export const MessageType_ = {
   EMBED_SIZE_CHANGED: 'embed-size-changed',
   EMBED_SIZE_DENIED: 'embed-size-denied',
 };
-
-//const windowContextCreated = new Event('windowContextCreated');
 
 export class AmpContext {
   constructor(win) {
