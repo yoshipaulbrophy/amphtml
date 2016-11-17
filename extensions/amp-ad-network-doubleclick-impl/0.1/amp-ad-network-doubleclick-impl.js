@@ -74,6 +74,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     const adTestOn = isInManualExperiment(this.element);
 
     const multiSizeDataStr = this.element.getAttribute('data-multi-size');
+    let szStr = slotRect.width + 'x' + slotRect.height;
     if (multiSizeDataStr) {
       const multiSizeValidation = this.element
           .getAttribute('data-multi-size-validation');
@@ -85,14 +86,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
           this.element.getAttribute('width') /* Primary width */,
           this.element.getAttribute('height') /* Primary height */,
           multiSizeValidation /* Raw multi-size-validation data attribute */);
-      let multiSize = '';
-      for (const i in dimensions) {
-        multiSize += (multiSize ? ',' : '') +
-            dimensions[i][0] + 'x' + dimensions[i][1];
-      }
-      // Override current multi-size data attribute with only those values that
-      // are valid.
-      this.element.setAttribute('data-multi-size', multiSize);
+      szStr += '|' + dimensions.map(dimension => dimension.join('x')).join('|');
     }
 
     return googleAdUrl(this, DOUBLECLICK_BASE_URL, startTime, slotIdNumber, [
@@ -102,7 +96,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
       {name: 'd_imp', value: '1'},
       {name: 'impl', value: 'ifr'},
       {name: 'sfv', value: 'A'},
-      {name: 'sz', value: slotRect.width + 'x' + slotRect.height},
+      {name: 'sz', value: szStr},
       {name: 'tfcd', value: tfcd == undefined ? null : tfcd},
       {name: 'u_sd', value: global.devicePixelRatio},
       {name: 'adtest', value: adTestOn},

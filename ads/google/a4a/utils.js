@@ -137,11 +137,6 @@ function buildAdUrl(
   const viewportRect = a4a.getViewport().getRect();
   const iframeDepth = iframeNestingDepth(global);
   const dtdParam = {name: 'dtd'};
-  let multiSizeJson = '';
-  const multiSizeStr = a4a.element.getAttribute('data-multi-size');
-  if (multiSizeStr) {
-    multiSizeJson = '#' + JSON.stringify({multiSize: multiSizeStr});
-  }
   const allQueryParams = queryParams.concat(
     [
       {
@@ -169,7 +164,7 @@ function buildAdUrl(
       {
         name: 'loc',
         value: global.location.href == documentInfo.canonicalUrl ?
-            null : global.location.href + multiSizeJson,
+            null : global.location.href,
       },
       {name: 'ref', value: referrer},
     ]
