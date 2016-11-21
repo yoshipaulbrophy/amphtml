@@ -322,6 +322,10 @@ describe('amp-a4a', () => {
         });
       });
     });
+
+    it('should resize correctly for multi-size ads', () => {
+
+    });
   });
 
   describe('#onLayoutMeasure', () => {

@@ -114,7 +114,7 @@ describe('integration test: a4a', () => {
   });
 
   it('should render a single AMP ad in a friendly iframe', () => {
-    return fixture.addElement(a4aElement).then(unusedElement => {
+    return fixture.addElement(a4aElement).then(unusedElement => { debugger;
       expectRenderedInFriendlyIframe(a4aElement, 'Hello, world.');
     });
   });
@@ -159,6 +159,7 @@ describe('integration test: a4a', () => {
     extractCreativeAndSignatureStub.onFirstCall().returns({
       creative: utf8Encode(validCSSAmp.reserialized),
       signature: null,
+      size: null,
     });
     return fixture.addElement(a4aElement).then(unusedElement => {
       expect(extractCreativeAndSignatureStub).to.be.calledOnce;
@@ -172,6 +173,7 @@ describe('integration test: a4a', () => {
             .onFirstCall().returns({
               creative: null,
               signature: validCSSAmp.signature,
+              size: null,
             })
             .onSecondCall().throws(new Error(
             'Testing extractCreativeAndSignature should not occur error'));
