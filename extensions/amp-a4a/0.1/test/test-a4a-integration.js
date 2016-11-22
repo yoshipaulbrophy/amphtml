@@ -114,7 +114,7 @@ describe('integration test: a4a', () => {
   });
 
   it('should render a single AMP ad in a friendly iframe', () => {
-    return fixture.addElement(a4aElement).then(unusedElement => { debugger;
+    return fixture.addElement(a4aElement).then(unusedElement => {
       expectRenderedInFriendlyIframe(a4aElement, 'Hello, world.');
     });
   });
