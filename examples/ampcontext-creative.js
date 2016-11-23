@@ -4,7 +4,7 @@ if (!window.context){
   console.log("window.context NOT READY");
 
   // must add listener for the creation of window.context
-  window.addEventListener('windowContextCreated', function(){
+  window.addEventListener('amp-windowContextCreated', function(){
     console.log("window.context created and ready to use");
     window.context.onResizeSuccess(resizeSuccessCallback);
     window.context.onResizeDenied(resizeDeniedCallback);
