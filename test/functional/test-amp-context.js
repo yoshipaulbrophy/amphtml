@@ -38,7 +38,6 @@ describe('3p ampcontext.js', () => {
     expect(context).to.be.ok;
     expect(context.location).to.equal('foo.com');
     expect(context.canonicalUrl).to.equal('foo.com');
-    expect(context.clientId).to.equal('123');
     expect(context.pageViewId).to.equal('1');
     expect(context.sentinel).to.equal('1-291921');
     expect(context.startTime).to.equal('0');
@@ -53,7 +52,10 @@ describe('3p ampcontext.js', () => {
     } catch (err) {
       // do nothing with it
     }
-    expect(AmpContextSpy.threw("Incorrect sentinel format.")).to.be.true;
+    expect(AmpContextSpy.threw()).to.be.true;
+    expect(AmpContextSpy.exceptions.length).to.equal(1);
+    expect(AmpContextSpy.exceptions[0].message).to.equal(
+        'Incorrect sentinel format.');
   });
 
   it ('should throw error if metadata missing', () => {
@@ -64,7 +66,10 @@ describe('3p ampcontext.js', () => {
     } catch (err) {
       // do nothing with it
     }
-    expect(AmpContextSpy.threw("Could not parse metadata.")).to.be.true;
+    expect(AmpContextSpy.threw()).to.be.true;
+    expect(AmpContextSpy.exceptions.length).to.equal(1);
+    expect(AmpContextSpy.exceptions[0].message).to.equal(
+        'Could not parse metadata.');
   });
 
   it('should be able to send an intersection observer request', () => {
@@ -238,7 +243,7 @@ describe('3p ampcontext.js', () => {
       iframe.win.name = generateAttributes();
 
       const windowContextPromise = new Promise(resolve => {
-        iframe.win.addEventListener('windowContextCreated', resolve);
+        iframe.win.addEventListener('amp-windowContextCreated', resolve);
       });
 
       const windowContextScript = iframe.doc.createElement('script');
@@ -256,7 +261,6 @@ describe('3p ampcontext.js', () => {
         expect(iframe.win.context).to.be.ok;
         expect(iframe.win.context.location).to.equal('foo.com');
         expect(iframe.win.context.canonicalUrl).to.equal('foo.com');
-        expect(iframe.win.context.clientId).to.equal('123');
         expect(iframe.win.context.pageViewId).to.equal('1');
         expect(iframe.win.context.sentinel).to.equal('1-291921');
         expect(iframe.win.context.startTime).to.equal('0');
@@ -273,7 +277,6 @@ function generateAttributes(opt_sentinel) {
   attributes._context = {
     location: 'foo.com',
     canonicalUrl: 'foo.com',
-    clientId: '123',
     pageViewId: '1',
     sentinel: sentinel,
     startTime: '0',
@@ -289,7 +292,6 @@ function generateIncorrectAttributes() {
   attributes.wrong = {
     location: 'foo.com',
     canonicalUrl: 'foo.com',
-    clientId: '123',
     pageViewId: '1',
     sentinel: '1-291921',
     startTime: '0',
