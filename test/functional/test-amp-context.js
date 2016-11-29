@@ -1,3 +1,18 @@
+/**
+ * Copyright 2015 The AMP HTML Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS-IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import {
   AmpContext,
   MessageType_,
@@ -46,7 +61,7 @@ describe('3p ampcontext.js', () => {
 
   it ('should throw error if sentinel invalid', () => {
     win.name = generateAttributes('foobar');
-    const AmpContextSpy = sinon.spy(AmpContext);
+    const AmpContextSpy = sandbox.spy(AmpContext);
     try{
       new AmpContextSpy(win);
     } catch (err) {
@@ -60,7 +75,7 @@ describe('3p ampcontext.js', () => {
 
   it ('should throw error if metadata missing', () => {
     win.name = generateIncorrectAttributes();
-    const AmpContextSpy = sinon.spy(AmpContext);
+    const AmpContextSpy = sandbox.spy(AmpContext);
     try{
       new AmpContextSpy(win);
     } catch (err) {
@@ -75,7 +90,7 @@ describe('3p ampcontext.js', () => {
   it('should be able to send an intersection observer request', () => {
     win.name = generateAttributes();
     const context = new AmpContext(win);
-    const callbackSpy = sinon.spy();
+    const callbackSpy = sandbox.spy();
     const stopObserving = context.observeIntersection(callbackSpy);
 
     // window.context should have sent postMessage asking for intersection
@@ -116,7 +131,7 @@ describe('3p ampcontext.js', () => {
   it('should send a pM and set callback when observePageVisibility()', () => {
     win.name = generateAttributes();
     const context = new AmpContext(win);
-    const callbackSpy = sinon.spy();
+    const callbackSpy = sandbox.spy();
     const stopObserving = context.observePageVisibility(callbackSpy);
 
     // window.context should have sent postMessage asking for visibility
@@ -157,8 +172,8 @@ describe('3p ampcontext.js', () => {
   it('should call resize success callback on resize success', () => {
     win.name = generateAttributes();
     const context = new AmpContext(win);
-    const successCallbackSpy = sinon.spy();
-    const deniedCallbackSpy = sinon.spy();
+    const successCallbackSpy = sandbox.spy();
+    const deniedCallbackSpy = sandbox.spy();
 
     context.onResizeSuccess(successCallbackSpy);
     context.onResizeDenied(deniedCallbackSpy);
@@ -199,8 +214,8 @@ describe('3p ampcontext.js', () => {
   it('should call resize denied callback on resize denied', () => {
     win.name = generateAttributes();
     const context = new AmpContext(win);
-    const successCallbackSpy = sinon.spy();
-    const deniedCallbackSpy = sinon.spy();
+    const successCallbackSpy = sandbox.spy();
+    const deniedCallbackSpy = sandbox.spy();
 
     context.onResizeSuccess(successCallbackSpy);
     context.onResizeDenied(deniedCallbackSpy);

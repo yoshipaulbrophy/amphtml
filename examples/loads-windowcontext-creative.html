@@ -12,19 +12,38 @@
     <h1 style="font-size: 1em;"> window.context example </h1>
     <p> Creative not loading? Make sure you put .max in the url for the page </p>
 
-    <h2> Following ad loads through A4A flow </h2>
+    <h2> A4A + JS Creative </h2>
     <amp-ad width="300" height="400"
             type="fake"
             data-use-a4a="true"
             src="http://localhost:8000/examples/ampcontext-creative.html">
     </amp-ad>
 
-    <h2> Following ad loads through 3P flow </h2>
+    <h2> A4A + Unvalidated AMP Creative </h2>
+    <amp-ad width="300" height="400"
+            type="fake"
+            data-use-a4a="true"
+            src="FOO.BAR"
+    </amp-ad>
+
+    <h2> A4A + Validated AMP Creative </h2>
+    <amp-ad width="300" height="400"
+            type="fake"
+            data-use-a4a="true"
+            src="FOO.BAR"
+    </amp-ad>
+
+    <h2> 3P + JS Creative </h2>
     <amp-ad width="300" height="400"
             type="fake"
             src="http://localhost:8000/examples/ampcontext-creative.html">
     </amp-ad>
 
+    <h2> 3P + A4A Creative </h2>
+    <amp-ad width="300" height="400"
+            type="fake"
+            src="FOO.BAR"
+    </amp-ad>
 
   </body>
 
