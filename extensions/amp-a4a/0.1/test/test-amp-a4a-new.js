@@ -126,8 +126,31 @@ describe('amp-a4a', () => {
 
       const getSigningServiceNamesMock = sandbox.stub(AmpA4A.prototype,
           'getSigningServiceNames');
-      getSigningServiceNamesMock.throws("Not implemented");
+      getSigningServiceNamesMock.throws('Not implemented');
 
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+
+      return createAdTestingIframePromise().then(fixture => {
+        let exceptionThrown = false;
+        try {
+          const a4a = getA4A(fixture, defaultAttributes);
+        } catch (e) {
+          exceptionThrown = true;
+        }
+        expect(exceptionThrown).to.be.true;
+      });
+    });
+  });
+
+
+  describe('#getSigningServiceNames', () => {
+    it('should one valid key', () => {
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
+      
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
 
       return createAdTestingIframePromise().then(fixture => {
