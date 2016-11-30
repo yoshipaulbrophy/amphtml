@@ -184,7 +184,7 @@ export class AmpA4A extends AMP.BaseElement {
 
     this.emitLifecycleEvent('adSlotBuilt');
   }
-  
+
   /** @override */
   getPriority() {
     // Priority used for scheduling preload and layout callback.  Because
