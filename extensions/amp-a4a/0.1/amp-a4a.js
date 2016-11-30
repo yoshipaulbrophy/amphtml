@@ -185,6 +185,10 @@ export class AmpA4A extends AMP.BaseElement {
     this.emitLifecycleEvent('adSlotBuilt');
   }
 
+  useLocalDevKey_() {
+    return getMode().localDev;
+  }
+
   /** @override */
   getPriority() {
     // Priority used for scheduling preload and layout callback.  Because
@@ -712,6 +716,12 @@ export class AmpA4A extends AMP.BaseElement {
         return [];
       }
     });
+<<<<<<< HEAD
+=======
+    if (this.useLocalDevKey_()) {
+      jwkSetPromises.push(Promise.resolve(devJwkSet));
+    }
+>>>>>>> 65b557940eaf9dbfac0891a23a74197eb08913a8
     return jwkSetPromises.map(jwkSetPromise =>
         jwkSetPromise.then(jwkSet =>
           jwkSet.map(jwk =>
