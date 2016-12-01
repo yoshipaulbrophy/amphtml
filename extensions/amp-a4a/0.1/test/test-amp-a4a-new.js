@@ -21,29 +21,13 @@ import {ampdocServiceFor} from '../../../../src/ampdoc';
 import {base64UrlDecodeToBytes} from '../../../../src/utils/base64';
 import {cancellation} from '../../../../src/error';
 import {createIframePromise} from '../../../../testing/iframe';
-import {data as minimumAmp} from './testdata/minimum_valid_amp.reserialized';
-import {data as regexpsAmpData} from './testdata/regexps.reserialized';
 import {
   data as validCSSAmp,
 } from './testdata/valid_css_at_rules_amp.reserialized';
-import {data as testFragments} from './testdata/test_fragments';
-import {data as expectations} from './testdata/expectations';
 import {installDocService} from '../../../../src/service/ampdoc-impl';
-import '../../../../extensions/amp-ad/0.1/amp-ad-api-handler';
+import '../../../../extensions/amp-ad/0.1/amp-ad-xorigin-iframe-handler';
 import * as sinon from 'sinon';
-
-class MockA4AImpl extends AmpA4A {
-  getAdUrl() {
-    return Promise.resolve('https://test.location.org/ad/012345?args');
-  }
-
-  extractCreativeAndSignature(responseArrayBuffer, responseHeaders) {
-    return Promise.resolve({
-      creative: responseArrayBuffer,
-      signature: base64UrlDecodeToBytes(responseHeaders.get('X-Google-header')),
-    });
-  }
-}
+import {MockA4AImpl} from './utils';
 
 /**
  * Create a promise for an iframe that has a super-minimal mock AMP environment
@@ -73,6 +57,7 @@ function createAdTestingIframePromise() {
 
 describe('amp-a4a', () => {
   let sandbox;
+  let getSigningServiceNamesMock;
   /*let xhrMock;
   let xhrMockJson;
   let viewerWhenVisibleMock;
@@ -105,6 +90,9 @@ describe('amp-a4a', () => {
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
+    getSigningServiceNamesMock = sandbox.stub(AmpA4A.prototype,
+        'getSigningServiceNames');
+    getSigningServiceNamesMock.returns(['google']);
     /*xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
     xhrMockJson.withArgs(
         'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
@@ -124,11 +112,7 @@ describe('amp-a4a', () => {
           {mode: 'cors', method: 'GET'})
       .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
 
-      const getSigningServiceNamesMock = sandbox.stub(AmpA4A.prototype,
-          'getSigningServiceNames');
       getSigningServiceNamesMock.throws('Not implemented');
-
-      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
 
       return createAdTestingIframePromise().then(fixture => {
         let exceptionThrown = false;
@@ -144,15 +128,14 @@ describe('amp-a4a', () => {
 
 
   describe('#getSigningServiceNames', () => {
-    it('should one valid key', () => {
+    it('should retrieve one valid key', () => { debugger;
       const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
       xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
       .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
-      
-      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype,
+          'getKeyInfoSets_');
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
@@ -161,11 +144,11 @@ describe('amp-a4a', () => {
 
         // Check that we have the right number of keys.
         expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(2);
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Check that the keys are valid.
-        const keyValidationPromises = a4a.keyInfoSetPromises_.map(
+        const keyValidationPromises = a4a.win.ampA4aValidationKeys.map(
             keyInfoSetPromise => {
               expect(keyInfoSetPromise).to.be.instanceof(Promise);
               return keyInfoSetPromise.then(keyInfoSet => {
@@ -197,20 +180,21 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      getSigningServiceNamesMock.returns(['google', 'google']);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
-        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+        expect(xhrMockJson.calledTwice, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(2);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(2);
 
         // Check that the keys are valid.
-        const keyValidationPromises = a4a.keyInfoSetPromises_.map(
+        const keyValidationPromises = a4a.win.ampA4aValidationKeys.map(
             keyInfoSetPromise => {
               expect(keyInfoSetPromise).to.be.instanceof(Promise);
               return keyInfoSetPromise.then(keyInfoSet => {
@@ -239,26 +223,23 @@ describe('amp-a4a', () => {
       .returns(Promise.reject("Network Error."));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
-        expect(useLocalDevKeyStub.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Ensure that each element is a Promise.
-        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+        expect(a4a.win.ampA4aValidationKeys[0]).to.be.instanceof(Promise);
 
         // Check that the key is empty.
-        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+        return a4a.win.ampA4aValidationKeys[0].then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
           expect(Array.isArray(keyInfoSet)).to.be.true;
           expect(keyInfoSet.length).to.equal(0);
@@ -275,26 +256,23 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve(validCSSAmp.publicKey));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
-        expect(useLocalDevKeyStub.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Ensure that each element is a Promise.
-        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+        expect(a4a.win.ampA4aValidationKeys[0]).to.be.instanceof(Promise);
 
         // Check that the key is empty.
-        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+        return a4a.win.ampA4aValidationKeys[0].then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
           expect(Array.isArray(keyInfoSet)).to.be.true;
           expect(keyInfoSet.length).to.equal(0);
@@ -311,62 +289,23 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve({keeez: [JSON.parse(validCSSAmp.publicKey)]}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
-        expect(useLocalDevKeyStub.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Ensure that each element is a Promise.
-        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+        expect(a4a.win.ampA4aValidationKeys[0]).to.be.instanceof(Promise);
 
         // Check that the key is empty.
-        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
-          expect(keyInfoSet).to.not.be.null;
-          expect(Array.isArray(keyInfoSet)).to.be.true;
-          expect(keyInfoSet.length).to.equal(0);
-        });
-      });
-    });
-
-        it('should retrieve no keys due to response not being formatted correctly', () => {
-
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
-      xhrMockJson.withArgs(
-          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
-          {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve({keeez: []}));
-
-      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
-
-      return createAdTestingIframePromise().then(fixture => {
-        const a4a = getA4A(fixture, defaultAttributes);
-        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
-            .to.be.true;
-        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
-        expect(useLocalDevKeyStub.calledOnce).to.be.true;
-
-        // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
-
-        // Ensure that each element is a Promise.
-        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
-
-        // Check that the key is empty.
-        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+        return a4a.win.ampA4aValidationKeys[0].then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
           expect(Array.isArray(keyInfoSet)).to.be.true;
           expect(keyInfoSet.length).to.equal(0);
@@ -383,26 +322,56 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve({keeez: []}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
         expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
-        expect(useLocalDevKeyStub.calledOnce).to.be.true;
+
+        // Check that we have the right number of keys.
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
+
+        // Ensure that each element is a Promise.
+        expect(a4a.win.ampA4aValidationKeys[0]).to.be.instanceof(Promise);
+
+        // Check that the key is empty.
+        return a4a.win.ampA4aValidationKeys[0].then(keyInfoSet => {
+          expect(keyInfoSet).to.not.be.null;
+          expect(Array.isArray(keyInfoSet)).to.be.true;
+          expect(keyInfoSet.length).to.equal(0);
+        });
+      });
+    });
+
+    it('should retrieve no keys due to response not being formatted correctly', () => {
+
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keeez: []}));
+
+      const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+            .to.be.true;
+        expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
         expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Ensure that each element is a Promise.
-        expect(a4a.keyInfoSetPromises_[0]).to.be.instanceof(Promise);
+        expect(a4a.win.ampA4aValidationKeys[0]).to.be.instanceof(Promise);
 
         // Check that the key is empty.
-        return a4a.keyInfoSetPromises_[0].then(keyInfoSet => {
+        return a4a.win.ampA4aValidationKeys[0].then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
           expect(Array.isArray(keyInfoSet)).to.be.true;
           expect(keyInfoSet.length).to.equal(0);
@@ -420,8 +389,6 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve({keys: [{notAKey: 'invalid-key'}]}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
@@ -430,12 +397,12 @@ describe('amp-a4a', () => {
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         // Check that one key is valid and the other invalid.
-        const keyInfoSetPromise = a4a.keyInfoSetPromises_[0];
+        const keyInfoSetPromise = a4a.win.ampA4aValidationKeys[0];
         expect(keyInfoSetPromise).to.be.instanceof(Promise);
         return keyInfoSetPromise.then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
@@ -463,8 +430,6 @@ describe('amp-a4a', () => {
       .returns(Promise.resolve({keys: [validKey, invalidKey]}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
-      const useLocalDevKeyStub = sandbox.stub(AmpA4A.prototype, 'useLocalDevKey_');
-      useLocalDevKeyStub.returns(false);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
@@ -473,15 +438,15 @@ describe('amp-a4a', () => {
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
-        expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(1);
+        expect(a4a.win.ampA4aValidationKeys).to.not.be.null;
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(1);
 
         let validKeyCheck = false;
         let invalidKeyCheck = false;
 
         // Check that one key is valid and the other invalid.
-        const keyInfoSetPromise = a4a.keyInfoSetPromises_[0];
+        const keyInfoSetPromise = a4a.win.ampA4aValidationKeys[0];
         expect(keyInfoSetPromise).to.be.instanceof(Promise);
         return keyInfoSetPromise.then(keyInfoSet => {
           expect(keyInfoSet).to.not.be.null;
@@ -517,25 +482,30 @@ describe('amp-a4a', () => {
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
       .returns(Promise.resolve({keys: [{notAKey: 'invalid-key'}]}));
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset-dev.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
 
       const getKeyInfoSetsSpy = sandbox.spy(AmpA4A.prototype, 'getKeyInfoSets_');
+      getSigningServiceNamesMock.returns(['google', 'google-dev']);
 
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
-        expect(xhrMockJson.calledOnce, 'xhr.fetchJson called exactly once')
+        expect(xhrMockJson.calledTwice, 'xhr.fetchJson called exactly once')
             .to.be.true;
         expect(getKeyInfoSetsSpy.calledOnce).to.be.true;
 
         // Check that we have the right number of keys.
         expect(a4a.keyInfoSetPromises_).to.not.be.null;
-        expect(Array.isArray(a4a.keyInfoSetPromises_)).to.be.true;
-        expect(a4a.keyInfoSetPromises_.length).to.equal(2);
+        expect(Array.isArray(a4a.win.ampA4aValidationKeys)).to.be.true;
+        expect(a4a.win.ampA4aValidationKeys.length).to.equal(2);
 
         let validKeyCheck;
         let invalidKeyCheck;
 
         // Check that one key is valid and the other invalid.
-        const testPromises = a4a.keyInfoSetPromises_.map(keyInfoSetPromise => {
+        const testPromises = a4a.win.ampA4aValidationKeys.map(keyInfoSetPromise => {
           expect(keyInfoSetPromise).to.be.instanceof(Promise);
           return keyInfoSetPromise.then(keyInfoSet => {
             expect(keyInfoSet).to.not.be.null;
