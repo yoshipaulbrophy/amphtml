@@ -531,9 +531,8 @@ describe('amp-a4a', () => {
      * Tests the case of getAdUrl throwing an exception.
      */
     it('should result in this.adUrl_ being null', () => {
-      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
-          'getAdUrl');
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype, 'getAdUrl');
+      const xhrMockJson = sandbox.stub(AmpA4A.prototype, 'sendXhrRequest_');
       getAdUrlMock.throws("Function not implemented, or whatever.");
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
@@ -548,18 +547,21 @@ describe('amp-a4a', () => {
      * Tests the case of getAdUrl returning an empty string.
      */
     it('should result in this.adUrl_ being \'\'', () => {
-      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
-          'getAdUrl');
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype, 'getAdUrl');
+      const xhrMockJson = sandbox.stub(AmpA4A.prototype, 'sendXhrRequest_');
       getAdUrlMock.returns(Promise.resolve(''));
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
-        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
-            .to.be.true;
-        expect(a4a.adUrl_).to.equal('');
-        expect(xhrMockJson.called, 'execution should never get this far')
-            .to.be.false;
-        return Promise.resolve();
+        a4a.onLayoutMeasure();
+        return a4a.adPromise_.then(result => {
+          expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+              .to.be.true;
+          expect(a4a.adUrl_).to.equal('');
+          expect(xhrMockJson.called, 'execution should never get this far')
+              .to.be.false;
+          expect(result).to.be.null;
+          return Promise.resolve();
+        });
       });
     });
 
@@ -567,35 +569,62 @@ describe('amp-a4a', () => {
      * Tests the case of getAdUrl returning null.
      */
     it('should result in this.adUrl_ being \'\'', () => {
-      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
-          'getAdUrl');
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype, 'getAdUrl');
+      const xhrMockJson = sandbox.stub(AmpA4A.prototype, 'sendXhrRequest_');
       getAdUrlMock.returns(Promise.resolve(null));
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
-        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
-            .to.be.true;
-        expect(a4a.adUrl_).to.be.null;
-        expect(xhrMockJson.called, 'execution should never get this far')
-            .to.be.false;
-        return Promise.resolve();
+        a4a.onLayoutMeasure();
+        return a4a.adPromise_.then(result => {
+          expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+              .to.be.true;
+          expect(a4a.adUrl_).to.be.null;
+          expect(xhrMockJson.called, 'execution should never get this far')
+              .to.be.false;
+          expect(result).to.be.null;
+          return Promise.resolve();
+        });
       });
     });
     /*
      * Tests the case of getAdUrl returning a string.
      */
     it('should result in this.adUrl_ being \'http://foo.bar\'', () => {
-      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
-          'getAdUrl');
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype, 'getAdUrl');
+      const xhrMockJson = sandbox.stub(AmpA4A.prototype, 'sendXhrRequest_');
       getAdUrlMock.returns(Promise.resolve('http://foo.bar');
       return createAdTestingIframePromise().then(fixture => {
         const a4a = getA4A(fixture, defaultAttributes);
-        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
-            .to.be.true;
-        expect(a4a.adUrl_).to.equal('http://foo.bar');
-        expect(xhrMockJson.calledOnce).to.be.false;
-        return Promise.resolve();
+        a4a.onLayoutMeasure();
+        return a4a.adPromise_.then(result => {
+          expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+              .to.be.true;
+          expect(a4a.adUrl_).to.equal('http://foo.bar');
+          expect(xhrMockJson.calledOnce).to.be.false;
+          return Promise.resolve();
+        });
+      });
+    });
+  });
+  
+  describe('#sendXhrRequest_', () => {
+    /*
+     * Network error.
+     */
+    it('should result in this.adUrl_ being null', () => {
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype, 'getAdUrl');
+      const xhrMockJson = sandbox.stub(AmpA4A.prototype, 'sendXhrRequest_');
+      const fakeUrl = 'http://foo.bar';
+      getAdUrlMock.returns(Promise.resolve(fakeUrl));
+      xhrMockJson.withArgs(fakeUrl).returns(Promise.reject('Network error.'));
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        a4a.onLayoutMeasure();
+        return a4a.adPromise_.then(result => {
+          expect(xhrMockJson.calledOnce).to.be.true;
+          expect(result).to.be.null;
+          return Promise.resolve();
+        });
       });
     });
   });
