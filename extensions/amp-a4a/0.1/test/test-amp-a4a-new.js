@@ -105,30 +105,7 @@ describe('amp-a4a', () => {
   });
 
   describe('#getSigningServiceNames', () => {
-    it('should retrieve no valid keys', () => {
-      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
-      xhrMockJson.withArgs(
-          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
-          {mode: 'cors', method: 'GET'})
-      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
-
-      getSigningServiceNamesMock.throws('Not implemented');
-
-      return createAdTestingIframePromise().then(fixture => {
-        let exceptionThrown = false;
-        try {
-          const a4a = getA4A(fixture, defaultAttributes);
-        } catch (e) {
-          exceptionThrown = true;
-        }
-        expect(exceptionThrown).to.be.true;
-      });
-    });
-  });
-
-
-  describe('#getSigningServiceNames', () => {
-    it('should retrieve one valid key', () => { debugger;
+    it('should retrieve one valid key', () => {
       const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
       xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
@@ -166,7 +143,26 @@ describe('amp-a4a', () => {
             });
         return Promise.all(keyValidationPromises);
       });
+    });
+    
+    it('should retrieve no valid keys', () => {
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      xhrMockJson.withArgs(
+          'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
+          {mode: 'cors', method: 'GET'})
+      .returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
 
+      getSigningServiceNamesMock.throws('Not implemented');
+
+      return createAdTestingIframePromise().then(fixture => {
+        let exceptionThrown = false;
+        try {
+          const a4a = getA4A(fixture, defaultAttributes);
+        } catch (e) {
+          exceptionThrown = true;
+        }
+        expect(exceptionThrown).to.be.true;
+      });
     });
   });
 
@@ -475,9 +471,7 @@ describe('amp-a4a', () => {
     });
 
     it('should retrieve one invalid key', () => {
-
       const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
-
       xhrMockJson.withArgs(
           'https://cdn.ampproject.org/amp-ad-verifying-keyset.json',
           {mode: 'cors', method: 'GET'})
@@ -530,6 +524,79 @@ describe('amp-a4a', () => {
         return Promise.all(testPromises)
       });
     });
+  });
+  
+  describe('#getAdUrl', () => {
+    /*
+     * Tests the case of getAdUrl throwing an exception.
+     */
+    it('should result in this.adUrl_ being null', () => {
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
+          'getAdUrl');
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      getAdUrlMock.throws("Function not implemented, or whatever.");
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+            .to.be.true;
+        expect(a4a.adUrl_).to.be.null;
+        expect(xhrMockJson.called).to.be.false;
+        return Promise.resolve();
+      });
+    });
+    /*
+     * Tests the case of getAdUrl returning an empty string.
+     */
+    it('should result in this.adUrl_ being \'\'', () => {
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
+          'getAdUrl');
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      getAdUrlMock.returns(Promise.resolve(''));
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+            .to.be.true;
+        expect(a4a.adUrl_).to.equal('');
+        expect(xhrMockJson.called, 'execution should never get this far')
+            .to.be.false;
+        return Promise.resolve();
+      });
+    });
 
+    /*
+     * Tests the case of getAdUrl returning null.
+     */
+    it('should result in this.adUrl_ being \'\'', () => {
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
+          'getAdUrl');
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      getAdUrlMock.returns(Promise.resolve(null));
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+            .to.be.true;
+        expect(a4a.adUrl_).to.be.null;
+        expect(xhrMockJson.called, 'execution should never get this far')
+            .to.be.false;
+        return Promise.resolve();
+      });
+    });
+    /*
+     * Tests the case of getAdUrl returning a string.
+     */
+    it('should result in this.adUrl_ being \'http://foo.bar\'', () => {
+      const getAdUrlMock = sandbox.spy(AmpA4A.prototype,
+          'getAdUrl');
+      const xhrMockJson = sandbox.stub(Xhr.prototype, 'fetchJson');
+      getAdUrlMock.returns(Promise.resolve('http://foo.bar');
+      return createAdTestingIframePromise().then(fixture => {
+        const a4a = getA4A(fixture, defaultAttributes);
+        expect(getAdUrlMock.calledOnce, 'getAdUrl called exactly once')
+            .to.be.true;
+        expect(a4a.adUrl_).to.equal('http://foo.bar');
+        expect(xhrMockJson.calledOnce).to.be.false;
+        return Promise.resolve();
+      });
+    });
   });
 });
