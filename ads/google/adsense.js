@@ -71,6 +71,7 @@ export function adsense(global, data) {
       };
     }
   }
+  initializer['amp_ct'] = global.context.container; debugger;
   global.document.getElementById('c').appendChild(i);
   (global.adsbygoogle = global.adsbygoogle || []).push(initializer);
 }

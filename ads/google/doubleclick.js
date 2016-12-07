@@ -232,7 +232,8 @@ function doubleClickWithGpt(global, data, gladeExperiment) {
       }
 
       pubads.markAsAmp();
-      pubads.set('page_url', global.context.canonicalUrl);
+      pubads.set('page_url', global.context.canonicalUrl); debugger;
+      pubads.set('amp_ct', global.context.data.container);
       pubads.setCorrelator(Number(getCorrelator(global)));
       googletag.enableServices();
 
