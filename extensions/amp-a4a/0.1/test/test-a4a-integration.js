@@ -94,8 +94,8 @@ describe('integration test: a4a', () => {
     // Expect key set fetches for signing services.
     const fetchJsonMock = sandbox.stub(Xhr.prototype, 'fetchJson');
     for (const serviceName in signingServerURLs) {
-      fetchJsonMock.withArgs(
-        signingServerURLs[serviceName], {mode: 'cors', method: 'GET'}
+      fetchJsonMock.withArgs(signingServerURLs[serviceName],
+        {mode: 'cors', method: 'GET', disableAmpSourceOrigin: true}
       ).returns(Promise.resolve({keys: [JSON.parse(validCSSAmp.publicKey)]}));
     }
     // Expect ad request.

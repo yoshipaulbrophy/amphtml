@@ -768,7 +768,10 @@ export class AmpA4A extends AMP.BaseElement {
       const url = signingServerURLs[serviceName];
       const currServiceName = serviceName;
       if (url) {
-        return xhrFor(this.win).fetchJson(url, {mode: 'cors', method: 'GET'})
+        // Include disableAmpSourceOrigin to ensure __amp_source_origin is not
+        // added to request causing cache to miss across pages.
+        return xhrFor(this.win).fetchJson(
+          url, {mode: 'cors', method: 'GET', disableAmpSourceOrigin: true})
             .then(jwkSetObj => {
               const result = {serviceName: currServiceName};
               if (isObject(jwkSetObj) && Array.isArray(jwkSetObj.keys) &&
