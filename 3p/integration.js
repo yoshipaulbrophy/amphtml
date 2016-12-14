@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright 2015 The AMP HTML Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ import {computeInMasterFrame, nextTick, register, run} from './3p';
 import {urls} from '../src/config';
 import {endsWith} from '../src/string';
 import {parseUrl, getSourceUrl, isProxyOrigin} from '../src/url';
-import {initLogConstructor, user} from '../src/log';
+import {dev, initLogConstructor, user} from '../src/log';
 import {getMode} from '../src/mode';
 
 // 3P - please keep in alphabetic order
@@ -140,9 +140,15 @@ const AMP_EMBED_ALLOWED = {
 };
 
 const iframeName = window.name;
-const data = JSON.parse(window.name).attributes;
-window.context = data._context;
-
+let data;
+try {
+  data = JSON.parse(iframeName).attributes;
+  window.context = data._context;
+} catch (err) {
+  window.context = {};
+  dev().info(
+      'INTEGRATION', 'Could not parse context from:', iframeName);
+}
 // This should only be invoked after window.context is set
 initLogConstructor();
 
@@ -375,7 +381,7 @@ window.draw3p = function(opt_configCallback, opt_allowed3pTypes,
     window.context.reportRenderedEntityIdentifier =
         reportRenderedEntityIdentifier;
     window.context.computeInMasterFrame = computeInMasterFrame;
-    window.context.addContextToIframe = getAddContextToIframe(iframeName);
+    window.context.addContextToIframe = addNameToIframe.bind(null, iframeName);
     delete data._context;
     manageWin(window);
     installEmbedStateListener();
@@ -490,13 +496,12 @@ function reportRenderedEntityIdentifier(entityId) {
 
 /**
  *  Adds the serialized ad attributes to an iframe's name attribute.
- *  @param {object} iframe A creative iframe that will be added to the
- *    DOM.
+ *  @param {string} name A URIencoded JSON object of context
+ *      that needs to be attached to an iframe.
+ *  @param {Element} iframe
  */
-function getAddContextToIframe(iframeName){
-  return iframe => {
-    iframe.name = iframeName;
-  };
+function addNameToIframe(name, iframe) {
+  iframe.name = name;
 }
 
 /**

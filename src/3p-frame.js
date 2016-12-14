@@ -85,8 +85,8 @@ function getFrameAttributes(parentWindow, element, opt_type, opt_context) {
     domFingerprint: domFingerprint(element),
     startTime,
   };
-  attributes.ampcontextVersion = (getMode().localDev ? "LOCAL" :
-      $internalRuntimeVersion$ );
+  attributes.ampcontextVersion = (getMode().localDev ? 'LOCAL' :
+      '$internalRuntimeVersion$');
   Object.assign(attributes._context, opt_context);
   const adSrc = element.getAttribute('src');
   if (adSrc) {
@@ -117,21 +117,21 @@ export function getIframe(parentWindow, parentElement, opt_type, opt_context) {
   if (!count[attributes.type]) {
     count[attributes.type] = 0;
   }
+  count[attributes.type] += 1;
 
   const baseUrl = getBootstrapBaseUrl(parentWindow);
   const host = parseUrl(baseUrl).hostname;
   // Pass ad attributes to iframe via the fragment.
-  const src = baseUrl;
   const name = JSON.stringify({
-    host:host,
-    type:attributes.type,
-    count:count[attributes.type],
-    attributes: attributes
+    host,
+    type: attributes.type,
+    count: count[attributes.type],
+    attributes,
   });
 
-  iframe.src = src;
+  iframe.src = baseUrl;
   iframe.name = name;
-  iframe.ampLocation = parseUrl(src);
+  iframe.ampLocation = parseUrl(baseUrl);
   iframe.width = attributes.width;
   iframe.height = attributes.height;
   iframe.setAttribute('scrolling', 'no');
