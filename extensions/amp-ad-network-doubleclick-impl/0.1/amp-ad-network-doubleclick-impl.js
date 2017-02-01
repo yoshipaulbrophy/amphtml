@@ -102,6 +102,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
       {name: 'tfcd', value: tfcd == undefined ? null : tfcd},
       {name: 'u_sd', value: global.devicePixelRatio},
       {name: 'adtest', value: adTestOn},
+      {name: 'ctx_stn', value: contextSentinel},
     ], [
       {
         name: 'scp',

@@ -297,14 +297,18 @@ function getCustomBootstrapBaseUrl(parentWindow, opt_strictForUnitTest) {
  * Returns a randomized sentinel value for 3p iframes.
  * The format is "%d-%d" with the first value being the depth of current
  * window in the window hierarchy and the second a random integer.
- * @param {!Window} parentWindow
+ * @param {?Window=} parentWindow
  * @return {string}
  * @visibleForTesting
  */
 export function generateSentinel(parentWindow) {
   let windowDepth = 0;
-  for (let win = parentWindow; win && win != win.parent; win = win.parent) {
-    windowDepth++;
+  if (parentWindow){
+    for (let win = parentWindow; win && win != win.parent; win = win.parent) {
+      windowDepth++;
+    }
+  } else {
+    parentWindow = window;
   }
   return String(windowDepth) + '-' + getRandom(parentWindow);
 }
