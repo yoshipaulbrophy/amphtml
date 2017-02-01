@@ -25,6 +25,7 @@ export class AmpContext {
    */
   constructor(win) {
     this.client_ = new IframeMessagingClient(win);
+    this.win_ = win;
     if (!this.getWindowSentinel_()) {
       this.setupMetadata_();
     }
