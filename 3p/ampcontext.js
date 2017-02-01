@@ -24,8 +24,9 @@ export class AmpContext {
    *  @param {Window} win The window that the instance is built inside.
    */
   constructor(win) {
-    this.setupMetadata_();
     this.client_ = new IframeMessagingClient(win);
+    this.win_ = win;
+    this.setupMetadata_();
     this.client_.setHostWindow(this.getHostWindow_());
     this.client_.setSentinel(this.sentinel);
   }
