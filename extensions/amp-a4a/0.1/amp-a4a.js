@@ -145,10 +145,6 @@ let CryptoKeysDef;
  */
 let AllServicesCryptoKeysDef;
 
-/**
- *  The sentinel for using the AmpContext library.
- */
-let contextSentinel;
 
 /** @private */
 export const LIFECYCLE_STAGES = {
@@ -227,6 +223,12 @@ export class AmpA4A extends AMP.BaseElement {
 
     /** @private {?Promise<?CreativeMetaDataDef>} */
     this.adPromise_ = null;
+
+    /**
+     *  The sentinel for using the AmpContext library.
+     */
+    this.contextSentinel_;
+
 
     /**
      * @private {number} unique ID of the currently executing promise to allow
@@ -463,7 +465,7 @@ export class AmpA4A extends AMP.BaseElement {
         /** @return {!Promise<?string>} */
         .then(() => {
           checkStillCurrent(promiseId);
-          contextSentinel = generateSentinel();
+          this.contextSentinel_ = generateSentinel();
           return /** @type {!Promise<?string>} */ (this.getAdUrl());
         })
         // This block returns the (possibly empty) response to the XHR request.
