@@ -40,6 +40,7 @@ import {some} from '../../../src/utils/promise';
 import {utf8Decode} from '../../../src/utils/bytes';
 import {viewerForDoc} from '../../../src/viewer';
 import {xhrFor} from '../../../src/xhr';
+import {FetchInitDef} from '../../../src/service/xhr-impl';
 import {endsWith} from '../../../src/string';
 import {platformFor} from '../../../src/platform';
 import {
@@ -133,6 +134,13 @@ export const LIFECYCLE_STAGES = {
   adSlotCleared: '20',
 };
 
+/** @private {!FetchInitDef} */
+const AD_REQUEST_XHR_INIT_ = {
+  mode: 'cors',
+  method: 'GET',
+  credentials: 'include',
+  requireAmpResponseSourceOrigin: true,
+};
 
 /**
  * Utility function that ensures any error thrown is handled by optional
@@ -170,6 +178,11 @@ export function protectFunctionWrapper(
     }
   };
 };
+
+/** @private {!{sraEnabled: boolean,
+ *              adUrls: !Array<string>,
+ *              getSraUrlPromise: ?Promise<string>}} */
+const SRA_STATE_ = {adUrls: []};
 
 export class AmpA4A extends AMP.BaseElement {
   // TODO: Add more error handling throughout code.
@@ -231,7 +244,6 @@ export class AmpA4A extends AMP.BaseElement {
     this.experimentalNonAmpCreativeRenderMethod_ =
       platformFor(this.win).isIos() ? XORIGIN_MODE.SAFEFRAME : null;
 
-
     /**
      * Protected version of emitLifecycleEvent that ensures error does not
      * cause promise chain to reject.
@@ -267,6 +279,15 @@ export class AmpA4A extends AMP.BaseElement {
     this.config = adConfig[adType] || {};
     this.uiHandler = new AMP.AmpAdUIHandler(this);
     this.uiHandler.init();
+    if (SRA_STATE_.sraEnabled == undefined) {
+      // Usage of SRA determined by first executed slot.
+      if ((SRA_STATE_.sraEnabled = this.useSRA())) {
+        // SRA must use safeframe to render.
+        this.experimentalNonAmpCreativeRenderMethod_ = XORIGIN_MODE.SAFEFRAME;
+        // TODO(keithwrightbos): send cookie request here after ensuring
+        // page is visible
+      }
+    }
   }
 
   /** @override */
@@ -404,40 +425,13 @@ export class AmpA4A extends AMP.BaseElement {
         .then(adUrl => {
           checkStillCurrent(promiseId);
           this.adUrl_ = adUrl;
+          // TODO(keithwrightbos): do we fire this now for SRA?
           this.protectedEmitLifecycleEvent_('urlBuilt', adUrl);
-          return adUrl && this.sendXhrRequest_(adUrl);
-        })
-        // The following block returns either the response (as a {bytes, headers}
-        // object), or null if no response is available / response is empty.
-        /** @return {?Promise<?{bytes: !ArrayBuffer, headers: !Headers}>} */
-        .then(fetchResponse => {
-          checkStillCurrent(promiseId);
-          if (!fetchResponse || !fetchResponse.arrayBuffer) {
-            return null;
-          }
-          this.protectedEmitLifecycleEvent_('adRequestEnd', fetchResponse);
-          // TODO(tdrl): Temporary, while we're verifying whether SafeFrame is
-          // an acceptable solution to the 'Safari on iOS doesn't fetch
-          // iframe src from cache' issue.  See
-          // https://github.com/ampproject/amphtml/issues/5614
-          const method = fetchResponse.headers.get(RENDERING_TYPE_HEADER) ||
-              this.experimentalNonAmpCreativeRenderMethod_;
-          this.experimentalNonAmpCreativeRenderMethod_ = method;
-          if (method && !isEnumValue(XORIGIN_MODE, method)) {
-            dev().error('AMP-A4A', `cross-origin render mode header ${method}`);
-          }
-          // Note: Resolving a .then inside a .then because we need to capture
-          // two fields of fetchResponse, one of which is, itself, a promise,
-          // and one of which isn't.  If we just return
-          // fetchResponse.arrayBuffer(), the next step in the chain will
-          // resolve it to a concrete value, but we'll lose track of
-          // fetchResponse.headers.
-          return fetchResponse.arrayBuffer().then(bytes => {
-            return {
-              bytes,
-              headers: fetchResponse.headers,
-            };
-          });
+          const boundCheckStillCurrent =
+              checkStillCurrent.bind(this, promiseId);
+          return adUrl && (SRA_STATE_.sraEnabled ?
+            this.sendAndProcessSraRequest_(adUrl, boundCheckStillCurrent) :
+            this.sendAndProcessNonSraRequest_(adUrl, boundCheckStillCurrent));
         })
         // This block returns the ad creative and signature, if available; null
         // otherwise.
@@ -586,7 +580,7 @@ export class AmpA4A extends AMP.BaseElement {
                         'Key failed to validate creative\'s signature',
                         keyInfo.serviceName, keyInfo.cryptoKey);
                   }
-                  return null;
+                  return Promise.reject();
                 },
                 err => {
                   user().error(
@@ -692,6 +686,7 @@ export class AmpA4A extends AMP.BaseElement {
       }
       this.layoutMeasureExecuted_ = false;
     });
+    // TODO(keithwrightbos): reset SRA_STATE_
     // Increment promiseId to cause any pending promise to cancel.
     this.promiseId_++;
     return true;
@@ -719,6 +714,36 @@ export class AmpA4A extends AMP.BaseElement {
    */
   getAdUrl() {
     throw new Error('getAdUrl not implemented!');
+  }
+
+  /**
+   * @return whether network should utilize SRA to combine multiple slots
+   *    into single request.
+   */
+  useSRA() {
+    return false;
+  }
+
+  /**
+   * Allows for ad network to combine multiple slots into single ad request.
+   * Only implement if useSRA may return true.
+   * @param {!Array<string>} adUrls
+   * @return {string} combined request to be sent as POST.
+   */
+  buildSRARequest(adUrls) {
+    throw new Error('buildSRARequest not implemented!');
+  }
+
+  /**
+   * Handles SRA response and breaks into seperate responses for each slot.
+   * Only implement if useSRA may return true.
+   * @param {!Array<string>} adUrls of the blocks as passed to buildSRARequest
+   * @param {!ArrayBuffer} response
+   * @param {!Headers} responseHeaders
+   * @return {!Promise<!Array<?{bytes: !ArrayBuffer, headers: Headers}>>}
+   */
+  parseSRAResponse(adUrls, creative, responseHeaders) {
+    throw new Error('parseSRAResponse not implemented!');
   }
 
   /**
@@ -760,27 +785,143 @@ export class AmpA4A extends AMP.BaseElement {
   }
 
   /**
-   * Send ad request, extract the creative and signature from the response.
-   * @param {string} adUrl Request URL to send XHR to.
-   * @return {!Promise<?../../../src/service/xhr-impl.FetchResponse>}
-   * @private
+   * Sends non-SRA ad request and converts response into creative and signature.
+   * @param {string} adUrl to fetch the creative and possible signature.
+   * @param {function} checkStillCurrent function to abort if promise chain
+   *    has been canceled.
+   * @return {!Promise<?{creative: !ArrayBuffer, headers: Headers}>
    */
-  sendXhrRequest_(adUrl) {
+  sendAndProcessNonSraRequest_(adUrl, checkStillCurrent) {
+    dev().assert(adUrl);
+    dev().assert(!SRA_STATE_.sraEnabled);
     this.protectedEmitLifecycleEvent_('adRequestStart');
-    const xhrInit = {
-      mode: 'cors',
-      method: 'GET',
-      credentials: 'include',
-      requireAmpResponseSourceOrigin: true,
-    };
     return xhrFor(this.win)
-        .fetch(adUrl, xhrInit)
-        .catch(unusedReason => {
-          // If an error occurs, let the ad be rendered via iframe after delay.
-          // TODO(taymonbeal): Figure out a more sophisticated test for deciding
-          // whether to retry with an iframe after an ad request failure or just
-          // give up and render the fallback content (or collapse the ad slot).
+      .fetch(adUrl, AD_REQUEST_XHR_INIT_)
+      .catch(unusedReason => {
+        // If an error occurs, let the ad be rendered via iframe after delay.
+        // TODO(taymonbeal): Figure out a more sophisticated test for deciding
+        // whether to retry with an iframe after an ad request failure or just
+        // give up and render the fallback content (or collapse the ad slot).
+        return null;
+      })
+      // The following block returns either the response (as a {bytes, headers}
+      // object), or null if no response is available / response is empty.
+      /** @return {?Promise<?{bytes: !ArrayBuffer, headers: !Headers}>} */
+      .then(fetchResponse => {
+        checkStillCurrent();
+        if (!fetchResponse || !fetchResponse.arrayBuffer) {
           return null;
+        }
+        this.protectedEmitLifecycleEvent_('adRequestEnd', fetchResponse);
+        // TODO(tdrl): Temporary, while we're verifying whether SafeFrame is
+        // an acceptable solution to the 'Safari on iOS doesn't fetch
+        // iframe src from cache' issue.  See
+        // https://github.com/ampproject/amphtml/issues/5614
+        const method = fetchResponse.headers.get(RENDERING_TYPE_HEADER) ||
+            this.experimentalNonAmpCreativeRenderMethod_;
+        this.experimentalNonAmpCreativeRenderMethod_ = method;
+        if (method && !isEnumValue(XORIGIN_MODE, method)) {
+          dev().error('AMP-A4A', `cross-origin render mode header ${method}`);
+        }
+        // Note: Resolving a .then inside a .then because we need to capture
+        // two fields of fetchResponse, one of which is, itself, a promise,
+        // and one of which isn't.  If we just return
+        // fetchResponse.arrayBuffer(), the next step in the chain will
+        // resolve it to a concrete value, but we'll lose track of
+        // fetchResponse.headers.
+        return fetchResponse.arrayBuffer().then(bytes => {
+          return {
+            bytes,
+            headers: fetchResponse.headers,
+          };
+        })
+      });
+  }
+
+  /**
+   * If SRA is enabled, blocks sending request until all slots for the given
+   * network have built their ad URLs after which they are combined into a
+   * single request and sent.  SRA response is the separated into parts for
+   * each slot.
+   * @param {string} adUrl for the given slot
+   * @param {function} checkStillCurrent function used to cancel if Promise
+   *    chain has been aborted.
+   * @return {!Promise<?{creative: !ArrayBuffer, headers: Headers}>
+   *    response for given block extracted from SRA response.
+   */
+  sendAndProcessSraRequest_(adUrl, checkStillCurrent) {
+    dev().assert(adUrl);
+    dev().assert(SRA_STATE_.sraEnabled);
+    // Create global promise that all slots will wait on which will execute
+    // once:
+    // - the number of ad urls pushed on the array equals to the total
+    // number of amp ad elements with the network's type is met
+    // - URLs are combined into a single request
+    // - SRA request returns and is split into creative/signature for each
+    // slot.  Assumes that the order of url array matches response.
+    SRA_STATE_.getSraUrlPromise = SRA_STATE_.getSraUrlPromise || (() => {
+      let resolver;
+      const urlPromise = new Promise(resolve => {
+        resolver = resolve;
+      });
+      SRA_STATE_.adUrls.push = adUrl => {
+        checkStillCurrent();
+        SRA_STATE_.adUrls[SRA_STATE_.adUrls.length] = adUrl;
+        const type = this.element.getAttribute('type');
+        // TODO(keithwrightbos): need to handle edge error cases here as this
+        // assumes ALL amp-ad tags of this type will execute getAdUrl.
+        if (SRA_STATE_.adUrls.length != this.win.document.querySelectorAll(
+          `${this.element.tagName}[type="${type}"]`).length) {
+          return;
+        }
+        // Build SRA ad request.
+        // TODO: send as POST
+        this.protectedEmitLifecycleEvent_('adRequestStart', {sra: 1});
+        xhrFor(this.win)
+          .fetch(this.buildSRARequest(SRA_STATE_.adUrls), AD_REQUEST_XHR_INIT_)
+          .catch(unusedReason => {
+            // If an error occurs, let the ad be rendered via iframe after
+            // delay using per slot ad url.
+            // TODO(keithwrightbos) - perhaps we should explicitly fail if
+            // network wants to guarantee ONLY SRA is allowed.
+            return null;
+          })
+          /** @return {!Promise<!Array{creative: !ArrayBuffer, signature: !ArrayBuffer}>} */
+          .then(fetchResponse => {
+            checkStillCurrent();
+            if (!fetchResponse || !fetchResponse.arrayBuffer) {
+              return null;
+            }
+            return fetchResponse.arrayBuffer().then(bytes => {
+              return {
+                bytes,
+                headers: fetchResponse.headers,
+              };
+            })
+          })
+          .then(responseParts => {
+            checkStillCurrent();
+            if (responseParts) {
+              this.protectedEmitLifecycleEvent_('parseSRAResponse',
+                  responseParts);
+            }
+            return responseParts && this.parseSRAResponse(
+                SRA_STATE_.adUrls, responseParts.bytes, responseParts.headers);
+          })
+          .then(adSlotResponses => {
+            checkStillCurrent();
+            user().assert(adSlotResponses.length == SRA_STATE_.adUrls.length);
+            resolver(adSlotResponses);
+          });
+        };
+        return urlPromise;
+      })();
+    SRA_STATE_.adUrls.push(adUrl);
+    const slotIndex = SRA_STATE_.adUrls.length - 1;
+    return SRA_STATE_.getSraUrlPromise.then(
+        adSlotResponses => {
+          checkStillCurrent();
+          return adSlotResponses[slotIndex];
         });
   }
 

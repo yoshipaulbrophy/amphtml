@@ -72,6 +72,29 @@ export class AmpAdNetworkAdsenseImpl extends AmpA4A {
   }
 
   /** @override */
+  useSRA() {
+    return this.win.location.hash.indexOf('a4a_sra_enabled') != -1;
+  }
+
+  /** @override */
+  buildSRARequest(adUrls) {
+    // TODO: for now just use the first URL
+    console.log('buildSRARequest', adUrls);
+    return adUrls[0];
+  }
+
+  /** @override */
+  parseSRAResponse(adUrls, bytes, headers) {
+    // TODO: for now just copy the response over for each block
+    console.log('parseSRAResponse', headers, bytes);
+    const result = [];
+    adUrls.forEach(() => {
+      result.push({bytes, headers});
+    });
+    return result;
+  }
+
+  /** @override */
   getAdUrl() {
     const startTime = Date.now();
     const global = this.win;
@@ -149,6 +172,7 @@ export class AmpAdNetworkAdsenseImpl extends AmpA4A {
 
   /** @override */
   emitLifecycleEvent(eventName, opt_associatedEventData) {
+    return;
     this.lifecycleReporter_ = this.lifecycleReporter_ ||
         this.initLifecycleReporter();
     switch (eventName) {

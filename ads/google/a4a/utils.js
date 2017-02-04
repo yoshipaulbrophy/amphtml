@@ -94,6 +94,7 @@ export function extractGoogleAdCreativeAndSignature(
       signature =
         base64UrlDecodeToBytes(dev().assertString(
             responseHeaders.get(AMP_SIGNATURE_HEADER)));
+      console.log('extractGoogleAdCreativeAndSignature', responseHeaders.get(AMP_SIGNATURE_HEADER));
     }
   } finally {
     return Promise.resolve(/** @type {
