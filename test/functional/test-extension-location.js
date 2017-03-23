@@ -39,7 +39,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.html',
         host: 'localhost:8000',
         protocol: 'http:',
-      }, 'amp-ad', true, true, true);
+      }, 'amp-ad', '0.1', true, true, true);
       expect(script).to.equal('http://localhost:8000/dist/v0/amp-ad-0.1.js');
     });
 
@@ -48,7 +48,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.html',
         host: 'localhost:80',
         protocol: 'https:',
-      }, 'amp-ad', true, true, false);
+      }, 'amp-ad', '0.1', true, true, false);
       expect(script).to.equal('https://localhost:80/dist/v0/amp-ad-0.1.max.js');
     });
 
@@ -57,7 +57,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.html',
         host: 'localhost:8000',
         protocol: 'https:',
-      }, 'amp-ad', true);
+      }, 'amp-ad', '0.1', true);
       expect(script).to.equal('https://cdn.ampproject.org/v0/amp-ad-0.1.js');
     });
 
@@ -66,7 +66,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.min.html',
         host: 'localhost:8000',
         protocol: 'http:',
-      }, 'amp-ad', true);
+      }, 'amp-ad', '0.1', true);
       expect(script).to.equal('http://localhost:8000/dist/v0/amp-ad-0.1.js');
     });
 
@@ -75,7 +75,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.max.html',
         host: 'localhost:8000',
         protocol: 'http:',
-      }, 'amp-ad', true);
+      }, 'amp-ad', '0.1', true);
       expect(script).to.equal('http://localhost:8000/dist/v0/amp-ad-0.1.max.js');
     });
 
@@ -85,7 +85,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: 'examples/ads.amp.min.html',
         host: 'localhost:8000',
         protocol: 'http:',
-      }, 'amp-ad', false);
+      }, 'amp-ad', '0.1', false);
       expect(script).to.equal(
           'https://cdn.ampproject.org/rtv/123/v0/amp-ad-0.1.js');
     });
@@ -95,7 +95,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: '/max/output.jsbin.com/pegizoq/quiet',
         host: 'localhost:80',
         protocol: 'http:',
-      }, 'amp-ad', true);
+      }, 'amp-ad', '0.1', true);
       expect(script).to.equal('http://localhost:80/dist/v0/amp-ad-0.1.max.js');
     });
 
@@ -104,7 +104,7 @@ describes.sandboxed('Extension Location', {}, () => {
         pathname: '/min/output.jsbin.com/pegizoq/quiet',
         host: 'localhost:80',
         protocol: 'http:',
-      }, 'amp-ad', true);
+      }, 'amp-ad', '0.1', true);
       expect(script).to.equal('http://localhost:80/dist/v0/amp-ad-0.1.js');
     });
   });
