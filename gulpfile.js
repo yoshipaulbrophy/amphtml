@@ -25,6 +25,7 @@ var cleanupBuildDir = require('./build-system/tasks/compile').cleanupBuildDir;
 var jsifyCssAsync = require('./build-system/tasks/jsify-css').jsifyCssAsync;
 var fs = require('fs-extra');
 var gulp = $$.help(require('gulp'));
+var glob = require("glob")
 var lazypipe = require('lazypipe');
 var minimatch = require('minimatch');
 var minimist = require('minimist');
@@ -38,6 +39,8 @@ var argv = minimist(process.argv.slice(2), {boolean: ['strictBabelTransform']});
 var cssOnly = argv['css-only'];
 
 require('./build-system/tasks');
+
+var execSync = require('child_process').execSync;
 
 var hostname = argv.hostname || 'cdn.ampproject.org';
 var hostname3p = argv.hostname3p || '3p.ampproject.net';
@@ -174,6 +177,35 @@ function buildExtensions(options) {
     results.push(buildExtension(e.name, e.version, e.hasCss, o, e.extraGlobs));
   }
   return Promise.all(results);
+}
+
+/**
+ * Bisects an error to find which files are leaking state to each other.
+ *
+ */
+function bisectError(options) {
+  $$.util.log(`Attempting to find errors`);
+  $$.util.log(argv.file);
+
+  var file = argv.file;
+
+  var testPaths = [
+    'test/**/*.js',
+    'ads/**/test/test-*.js',
+    'extensions/**/test/**/*.js',
+    'test/integration/**/*.js',
+    'test/functional/test-error.js',
+    'extensions/**/test/integration/**/*.js',
+  ];
+
+  var testFiles = [];
+
+  for (index in testPaths) {
+    testFiles = testFiles.concat(glob.sync(testPaths[index]));
+  }
+
+  var i = testFiles.indexOf(file);
+  delete testFiles[i];
 }
 
 /**
@@ -976,6 +1008,7 @@ function toPromise(readable) {
 /**
  * Gulp tasks
  */
+gulp.task('bisect', 'Bisects errors due to state leakage', bisectError);
 gulp.task('build', 'Builds the AMP library', build);
 gulp.task('check-types', 'Check JS types', checkTypes);
 gulp.task('css', 'Recompile css to build directory', compileCss);
