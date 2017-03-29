@@ -25,7 +25,9 @@ var cleanupBuildDir = require('./build-system/tasks/compile').cleanupBuildDir;
 var jsifyCssAsync = require('./build-system/tasks/jsify-css').jsifyCssAsync;
 var fs = require('fs-extra');
 var gulp = $$.help(require('gulp'));
-var glob = require("glob")
+var glob = require('glob');
+var karmaDefault = require('./build-system/tasks/karma.conf');
+var runtimeTest = require('./build-system/tasks/runtime-test.js');
 var lazypipe = require('lazypipe');
 var minimatch = require('minimatch');
 var minimist = require('minimist');
@@ -34,6 +36,14 @@ var touch = require('touch');
 var watchify = require('watchify');
 var internalRuntimeVersion = require('./build-system/internal-version').VERSION;
 var internalRuntimeToken = require('./build-system/internal-version').TOKEN;
+
+var Karma = require('karma').Server;
+var config = require('./build-system/config');
+var fs = require('fs');
+var path = require('path');
+var util = require('gulp-util');
+var webserver = require('gulp-webserver');
+var app = require('./build-system/test-server').app;
 
 var argv = minimist(process.argv.slice(2), {boolean: ['strictBabelTransform']});
 var cssOnly = argv['css-only'];
@@ -183,7 +193,7 @@ function buildExtensions(options) {
  * Bisects an error to find which files are leaking state to each other.
  *
  */
-function bisectError(options) {
+function bisectError(done) {
   $$.util.log(`Attempting to find errors`);
   $$.util.log(argv.file);
 
@@ -206,6 +216,39 @@ function bisectError(options) {
 
   var i = testFiles.indexOf(file);
   delete testFiles[i];
+
+  gulp.start('test');
+}
+
+function gulpTestFiles(files, done) {
+  var c = karmaDefault;
+
+  c.files = files;
+
+  // c.client is available in test browser via window.parent.karma.config
+  c.client.amp = {
+    useCompiledJs: false,
+    saucelabs: false,
+    adTypes: ['adsense', 'doubleclick'],
+  };
+
+  // Run fake-server to test XHR responses.
+  var server = gulp.src(process.cwd())
+      .pipe(webserver({
+        port: 31862,
+        host: 'localhost',
+        directoryListing: true,
+        middleware: [app],
+      }));
+  util.log(util.colors.yellow(
+      'Started test responses server on localhost:31862'));
+
+  new Karma(c, function(exitCode) {
+    util.log(util.colors.yellow(
+        'Shutting down test responses server on localhost:31862'));
+    server.emit('kill');
+    done(exitCode);
+  }).start();
 }
 
 /**
