@@ -95,7 +95,8 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     this.size_ = (width && height)
         ? {width, height}
         : this.getIntersectionElementLayoutBox();
-    let sizeStr = `${this.size_.width}x${this.size_.height}`;    const rawJson = this.element.getAttribute('json');
+    let sizeStr = `${this.size_.width}x${this.size_.height}`;
+    const rawJson = this.element.getAttribute('json');
     const jsonParameters = rawJson ? JSON.parse(rawJson) : {};
     const tfcd = jsonParameters['tagForChildDirectedTreatment'];
     const adTestOn = isInManualExperiment(this.element);
@@ -109,8 +110,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
       // dimensions in an array.
       const dimensions = getMultiSizeDimensions(
           multiSizeDataStr,
-          Number(this.element.getAttribute('width')),
-          Number(this.element.getAttribute('height')),
+          width, height,
           multiSizeValidation == 'true');
       sizeStr += '|' + dimensions.map(dimension => dimension.join('x')).join('|');
     }
