@@ -146,6 +146,7 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     const adResponsePromise =
         extractGoogleAdCreativeAndSignature(responseText, responseHeaders);
     return adResponsePromise.then(adResponse => {
+      debugger;
       if (adResponse.size) {
         this.handleResize_(adResponse.size.width, adResponse.size.height);
       } else {
@@ -184,13 +185,6 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     super.onCreativeRender(isVerifiedAmpCreative);
     injectActiveViewAmpAnalyticsElement(
         this, this.ampAnalyticsConfig, this.responseHeaders_);
-    const iframe = this.element.querySelector('iframe');
-    if (iframe) {
-      setStyles(iframe, {
-        width: `${this.size_.width}px`,
-        height: `${this.size_.height}px`,
-      });
-    }
   }
 
   /**
