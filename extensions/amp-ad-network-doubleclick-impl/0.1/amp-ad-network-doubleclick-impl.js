@@ -146,7 +146,6 @@ export class AmpAdNetworkDoubleclickImpl extends AmpA4A {
     const adResponsePromise =
         extractGoogleAdCreativeAndSignature(responseText, responseHeaders);
     return adResponsePromise.then(adResponse => {
-      debugger;
       if (adResponse.size) {
         this.handleResize_(adResponse.size.width, adResponse.size.height);
       } else {
