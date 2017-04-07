@@ -217,7 +217,8 @@ function bisectError(done) {
   var i = testFiles.indexOf(file);
   delete testFiles[i];
 
-  gulp.start('test');
+  runtimeTest.bisectTest(['extensions/amp-a4a/0.1/test/test-amp-a4a.js']);
+  //gulp.start('test');
 }
 
 function gulpTestFiles(files, done) {

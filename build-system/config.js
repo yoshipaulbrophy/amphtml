@@ -50,15 +50,16 @@ var commonTestPaths = [
 ];
 
 var testPaths = commonTestPaths.concat([
-  'test/**/*.js',
-  'ads/**/test/test-*.js',
-  'extensions/**/test/**/*.js',
+  'extensions/amp-a4a/0.1/test/test-amp-a4a.js',
+  //'test/**/*.js',
+  //'ads/**/test/test-*.js',
+  //'extensions/**/test/**/*.js',
 ]);
 
 var integrationTestPaths = commonTestPaths.concat([
-  'test/integration/**/*.js',
-  'test/functional/test-error.js',
-  'extensions/**/test/integration/**/*.js',
+  //'test/integration/**/*.js',
+  //'test/functional/test-error.js',
+  //'extensions/**/test/integration/**/*.js',
 ]);
 
 /** @const  */

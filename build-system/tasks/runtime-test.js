@@ -15,6 +15,7 @@
  */
 
 var argv = require('minimist')(process.argv.slice(2));
+var babel = require('babelify');
 var gulp = require('gulp-help')(require('gulp'));
 var Karma = require('karma').Server;
 var config = require('../config');
@@ -179,3 +180,40 @@ gulp.task('test', 'Runs tests', argv.nobuild ? [] : ['build'], function(done) {
     'files': 'Runs tests for specific files',
   }
 });
+
+/**
+ * Run tests.
+ */
+function bisectTest(files) {
+  var c = karmaDefault;
+
+  c.files = files;
+
+  // c.client is available in test browser via window.parent.karma.config
+  c.client.amp = {
+    useCompiledJs: false,
+    saucelabs: false,
+    adTypes: getAdTypes(),
+  };
+
+  // Run fake-server to test XHR responses.
+  var server = gulp.src(process.cwd())
+      .pipe(webserver({
+        port: 31862,
+        host: 'localhost',
+        directoryListing: true,
+        middleware: [app],
+      }));
+  util.log(util.colors.yellow(
+      'Started test responses server on localhost:31862'));
+
+  new Karma(c, function(exitCode) {
+    util.log(util.colors.yellow(
+        'Shutting down test responses server on localhost:31862'));
+    server.emit('kill');
+  }).start();
+}
+
+module.exports = {
+  bisectTest: bisectTest,
+};
