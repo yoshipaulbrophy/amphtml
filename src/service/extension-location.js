@@ -18,6 +18,11 @@ import {urls} from '../config';
 import {getMode} from '../mode';
 
 /**
+ * The default extension version to use when none is specified.
+ */
+export const DefaultExtensionVersion = '0.1';
+
+/**
  * Calculate the base url for any scripts.
  * @param {!Location} location The window's location
  * @param {boolean=} isLocalDev
@@ -37,14 +42,15 @@ function calculateScriptBaseUrl(location, isLocalDev, isTest) {
  * Calculate script url for an extension.
  * @param {!Location} location The window's location
  * @param {string} extensionId
- * @param {string} extensionVer
+ * @param {string=} extensionVer
  * @param {boolean=} isLocalDev
  * @param {boolean=} isTest
  * @param {boolean=} isUsingCompiledJs
  * @return {string}
  */
 export function calculateExtensionScriptUrl(location, extensionId,
-    extensionVer, isLocalDev, isTest, isUsingCompiledJs) {
+    extensionVer = DefaultExtensionVersion, isLocalDev, isTest,
+    isUsingCompiledJs) {
   const base = calculateScriptBaseUrl(location, isLocalDev, isTest);
   if (isLocalDev) {
     if ((isTest && !isUsingCompiledJs) || isMax(location)) {
